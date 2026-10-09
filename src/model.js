@@ -232,3 +232,39 @@ export function deleteElement(project, id) {
 export function findElement(project, id) {
   return project.walls.find((item) => item.id === id) || project.symbols.find((item) => item.id === id) || null;
 }
+
+/**
+ * Convert geometric values without changing the versioned v1 data contract.
+ * Unsupported destination ranges cause an explicit rejection: never clamp geometry.
+ */
+export function convertProjectUnits(input, targetUnits) {
+  const project = validateProject(input);
+  if (!UNIT_OPTIONS.includes(targetUnits)) throw new Error('Target units must be ft or m.');
+  if (project.metadata.units === targetUnits) return input;
+  const factor = project.metadata.units === 'ft' ? 0.3048 : 1 / 0.3048;
+  const scale = (value) => Number((value * factor).toPrecision(14));
+  const candidate = touchProject(project, {
+    metadata: { units: targetUnits, grid: scale(project.metadata.grid) },
+    walls: project.walls.map((wall) => ({
+      ...wall, x1: scale(wall.x1), y1: scale(wall.y1),
+      x2: scale(wall.x2), y2: scale(wall.y2),
+      thickness: scale(wall.thickness), height: scale(wall.height),
+    })),
+    symbols: project.symbols.map((symbol) => ({ ...symbol, x: scale(symbol.x), y: scale(symbol.y) })),
+  });
+  try { return validateProject(candidate); }
+  catch (error) {
+    throw new Error(`Unit conversion rejected: target geometry exceeds v1 limits (${error.message}). No changes made.`);
+  }
+}
+
+/** Move one wall endpoint. Prevents zero-length walls and retains the other endpoint. */
+export function moveWallEndpoint(project, id, endpoint, point) {
+  if (!['start', 'end'].includes(endpoint)) throw new Error('Endpoint must be start or end.');
+  const wall = project.walls.find((item) => item.id === id);
+  if (!wall) throw new Error('Selected wall no longer exists.');
+  if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) throw new Error('Endpoint coordinates must be finite.');
+  const keys = endpoint === 'start' ? ['x1', 'y1'] : ['x2', 'y2'];
+  if (wall[keys[0]] === point.x && wall[keys[1]] === point.y) return project;
+  return updateElement(project, id, { [keys[0]]: point.x, [keys[1]]: point.y });
+}

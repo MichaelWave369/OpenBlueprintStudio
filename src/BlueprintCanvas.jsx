@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSymbol, createWall, snap, wallGeometry } from './model.js';
 import { formatMeasurement, measureSegment } from './measurement.js';
+import { DEFAULT_VIEWPORT, fitViewport, panViewport, zoomViewport } from './viewport.js';
 
 const VIEW_WIDTH = 900;
 const VIEW_HEIGHT = 600;
@@ -28,7 +29,9 @@ export default function BlueprintCanvas({
   project,
   activeTool,
   selectedId,
+  fitRequest,
   onSelect,
+  onMoveWallEndpoint,
   onAddWall,
   onAddSymbol,
   onMoveSymbol,
@@ -40,17 +43,38 @@ export default function BlueprintCanvas({
   const [draggingSymbol, setDraggingSymbol] = useState(null);
   const [measureStart, setMeasureStart] = useState(null);
   const [measureEnd, setMeasureEnd] = useState(null);
+  const [draggingEndpoint, setDraggingEndpoint] = useState(null);
+  const [panState, setPanState] = useState(null);
+  const [viewport, setViewport] = useState(DEFAULT_VIEWPORT);
 
-  const gridStep = Math.max(0.25, project.metadata.grid);
+  const gridStep = project.metadata.grid;
   const gridPixels = SCALE * gridStep;
+  const gridVisible = gridPixels * VIEW_WIDTH / viewport.width >= 5;
+
+  // Fit only for explicit imports, plan changes or button presses, not every redraw.
+  useEffect(() => {
+    if (fitRequest > 0) setViewport(fitViewport(project));
+  }, [fitRequest]);
 
   const pointerToModel = (event) => {
-    const rect = svgRef.current.getBoundingClientRect();
-    const screenX = ((event.clientX - rect.left) / rect.width) * VIEW_WIDTH;
-    const screenY = ((event.clientY - rect.top) / rect.height) * VIEW_HEIGHT;
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM?.();
+    let screen;
+    if (ctm) {
+      const pointer = svg.createSVGPoint();
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      screen = pointer.matrixTransform(ctm.inverse());
+    } else {
+      const rect = svg.getBoundingClientRect();
+      screen = {
+        x: viewport.x + (event.clientX - rect.left) * viewport.width / rect.width,
+        y: viewport.y + (event.clientY - rect.top) * viewport.height / rect.height,
+      };
+    }
     return {
-      x: snap((screenX - ORIGIN.x) / SCALE, gridStep),
-      y: snap((screenY - ORIGIN.y) / SCALE, gridStep),
+      x: snap((screen.x - ORIGIN.x) / SCALE, gridStep),
+      y: snap((screen.y - ORIGIN.y) / SCALE, gridStep),
     };
   };
 
@@ -60,6 +84,8 @@ export default function BlueprintCanvas({
     setDraggingSymbol(null);
     setMeasureStart(null);
     setMeasureEnd(null);
+    setDraggingEndpoint(null);
+    setPanState(null);
   }, [activeTool]);
 
   useEffect(() => {
@@ -69,16 +95,32 @@ export default function BlueprintCanvas({
         setDraggingSymbol(null);
         setMeasureStart(null);
         setMeasureEnd(null);
+        setDraggingEndpoint(null);
+        setPanState(null);
       }
     };
     window.addEventListener('keydown', cancel);
     return () => window.removeEventListener('keydown', cancel);
   }, []);
 
-  const dimensions = useMemo(() => project.walls.map((wall) => ({ id: wall.id, ...wallGeometry(wall) })), [project.walls]);
+  const displayedWalls = useMemo(() => project.walls.map((wall) => {
+    if (draggingEndpoint?.id !== wall.id) return wall;
+    const { endpoint, point } = draggingEndpoint;
+    return endpoint === 'start'
+      ? { ...wall, x1: point.x, y1: point.y }
+      : { ...wall, x2: point.x, y2: point.y };
+  }), [project.walls, draggingEndpoint]);
+  const dimensions = useMemo(() => displayedWalls.map((wall) => ({ id: wall.id, ...wallGeometry(wall) })), [displayedWalls]);
 
   const handleBackgroundPointerDown = (event) => {
     if (event.button !== 0) return;
+    if (activeTool === 'pan') {
+      const ctm = svgRef.current?.getScreenCTM?.();
+      const scale = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+      setPanState({ x: event.clientX, y: event.clientY, scale: scale || 1, viewport });
+      svgRef.current?.setPointerCapture?.(event.pointerId);
+      return;
+    }
     const point = pointerToModel(event);
     if (activeTool === 'select') {
       onSelect(null);
@@ -104,10 +146,28 @@ export default function BlueprintCanvas({
   };
 
   const handlePointerMove = (event) => {
+    if (panState) {
+      setViewport(panViewport(panState.viewport, (event.clientX - panState.x) / panState.scale, (event.clientY - panState.y) / panState.scale));
+      return;
+    }
     const point = pointerToModel(event);
     setHoverPoint(point);
     onPointerCoordinate(point);
-    if (draggingSymbol) onMoveSymbol(draggingSymbol, point);
+    if (draggingEndpoint) {
+      setDraggingEndpoint((current) => current ? {
+        ...current, point,
+        moved: current.moved || current.point.x !== point.x || current.point.y !== point.y,
+      } : null);
+    } else if (draggingSymbol) onMoveSymbol(draggingSymbol, point);
+  };
+
+  const handlePointerUp = (event) => {
+    if (draggingEndpoint) {
+      if (draggingEndpoint.moved) onMoveWallEndpoint(draggingEndpoint.id, draggingEndpoint.endpoint, pointerToModel(event));
+      setDraggingEndpoint(null);
+    }
+    setPanState(null);
+    setDraggingSymbol(null);
   };
 
   const draftPath = draftStart && hoverPoint ? wallPath({ x1: draftStart.x, y1: draftStart.y, x2: hoverPoint.x, y2: hoverPoint.y }) : null;
@@ -120,17 +180,20 @@ export default function BlueprintCanvas({
       <svg
         ref={svgRef}
         className="blueprint-canvas"
-        viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+        viewBox={`${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`}
         role="application"
         aria-label="2D blueprint editor. Choose Wall, then click two grid points to draw. Escape ends a wall chain."
         tabIndex="0"
         onPointerDown={handleBackgroundPointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={() => setDraggingSymbol(null)}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => { setDraggingSymbol(null); setDraggingEndpoint(null); setPanState(null); }}
         onPointerLeave={() => {
-          setDraggingSymbol(null);
-          setHoverPoint(null);
-          onPointerCoordinate(null);
+          if (!draggingEndpoint && !panState) {
+            setDraggingSymbol(null);
+            setHoverPoint(null);
+            onPointerCoordinate(null);
+          }
         }}
       >
         <defs>
@@ -146,11 +209,11 @@ export default function BlueprintCanvas({
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <rect width={VIEW_WIDTH} height={VIEW_HEIGHT} fill="#071525" />
-        <rect width={VIEW_WIDTH} height={VIEW_HEIGHT} fill="url(#majorGrid)" />
+        <rect x={viewport.x} y={viewport.y} width={viewport.width} height={viewport.height} fill="#071525" />
+        {gridVisible && <rect x={viewport.x} y={viewport.y} width={viewport.width} height={viewport.height} fill="url(#majorGrid)" />}
 
         <g aria-label="Walls">
-          {project.walls.map((wall) => {
+          {displayedWalls.map((wall) => {
             const { start, end } = wallPath(wall);
             const selected = selectedId === wall.id;
             return (
@@ -165,7 +228,7 @@ export default function BlueprintCanvas({
                   className="hit-line"
                   onPointerDown={(event) => {
                     event.stopPropagation();
-                    if (activeTool === 'measure') handleBackgroundPointerDown(event);
+                    if (activeTool === 'measure' || activeTool === 'pan') handleBackgroundPointerDown(event);
                     else onSelect(wall.id);
                   }}
                 />
@@ -210,7 +273,7 @@ export default function BlueprintCanvas({
                 aria-label={meta.label}
                 onPointerDown={(event) => {
                   event.stopPropagation();
-                  if (activeTool === 'measure') { handleBackgroundPointerDown(event); return; }
+                  if (activeTool === 'measure' || activeTool === 'pan') { handleBackgroundPointerDown(event); return; }
                   onSelect(symbol.id);
                   if (activeTool === 'select') {
                     setDraggingSymbol(symbol.id);
@@ -225,6 +288,22 @@ export default function BlueprintCanvas({
           })}
         </g>
 
+        {activeTool === 'select' && displayedWalls.filter((wall) => wall.id === selectedId).flatMap((wall) => [
+          { id: 'start', point: toScreen({ x: wall.x1, y: wall.y1 }), modelPoint: { x: wall.x1, y: wall.y1 } },
+          { id: 'end', point: toScreen({ x: wall.x2, y: wall.y2 }), modelPoint: { x: wall.x2, y: wall.y2 } },
+        ]).map(({ id, point, modelPoint }) => (
+          <circle
+            key={id} cx={point.x} cy={point.y} r="8"
+            className="wall-endpoint-handle" role="button" tabIndex="-1"
+            aria-label={`Drag ${id} endpoint of selected wall`}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.stopPropagation();
+              setDraggingEndpoint({ id: selectedId, endpoint: id, point: modelPoint, moved: false });
+              svgRef.current?.setPointerCapture?.(event.pointerId);
+            }}
+          />
+        ))}
         {measurementPath && (
           <g className="measurement-layer" pointerEvents="none" aria-hidden="true">
             <line x1={measurementPath.start.x} y1={measurementPath.start.y} x2={measurementPath.end.x} y2={measurementPath.end.y} />
@@ -242,9 +321,15 @@ export default function BlueprintCanvas({
           </g>
         )}
       </svg>
+      <div className="canvas-viewport-controls" role="group" aria-label="2D viewport controls">
+        <button type="button" aria-label="Zoom out" title="Zoom out" onClick={() => setViewport((v) => zoomViewport(v, 1.25))}>−</button>
+        <span>{Math.round(VIEW_WIDTH / viewport.width * 100)}%</span>
+        <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => setViewport((v) => zoomViewport(v, 0.8))}>+</button>
+        <button type="button" aria-label="Fit plan in view" title="Fit plan in view" onClick={() => setViewport(fitViewport(project))}>Fit</button>
+      </div>
       <div className="canvas-corner-note">
         <span className="pulse-dot" />
-        {activeTool === 'measure' ? (measureEnd ? `Measured ${formatMeasurement(measurement, project.metadata.units)} · click again to start over` : measureStart ? 'Click end point · Esc to cancel' : 'Measure · click first point') : draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
+        {activeTool === 'measure' ? (measureEnd ? `Measured ${formatMeasurement(measurement, project.metadata.units)} · click again to start over` : measureStart ? 'Click end point · Esc to cancel' : 'Measure · click first point') : activeTool === 'pan' ? 'Pan · drag canvas to move the view' : draggingEndpoint ? 'Dragging wall endpoint · release to commit once' : draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
       </div>
     </div>
   );

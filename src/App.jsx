@@ -7,8 +7,10 @@ import {
   addWall,
   createEmptyProject,
   createSampleProject,
+  convertProjectUnits,
   deleteElement,
   findElement,
+  moveWallEndpoint,
   parseProjectJson,
   serializeProject,
   touchProject,
@@ -24,6 +26,7 @@ const TOOLS = [
   { id: 'select', key: 'V', label: 'Select', icon: '↖' },
   { id: 'wall', key: 'W', label: 'Wall', icon: '╱' },
   { id: 'measure', key: 'M', label: 'Measure', icon: '⌁' },
+  { id: 'pan', key: 'H', label: 'Pan', icon: '✥' },
   { id: 'door', key: 'D', label: 'Door', icon: 'D' },
   { id: 'window', key: 'I', label: 'Window', icon: 'W' },
   { id: 'outlet', key: 'O', label: 'Outlet', icon: 'O' },
@@ -61,6 +64,7 @@ export default function App() {
   const [history, setHistory] = useState({ past: [], present: start.project, future: [] });
   const [activeTool, setActiveTool] = useState('select');
   const [selectedId, setSelectedId] = useState(null);
+  const [fitRequest, setFitRequest] = useState(0);
   const [pointer, setPointer] = useState(null);
   const [notice, setNotice] = useState(start.warning || 'Sample plan loaded — start drawing.');
   const [saveState, setSaveState] = useState('local');
@@ -115,6 +119,8 @@ export default function App() {
       if (evieProposal) return;
       const target = event.target;
       const typing = target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
+      // Respect native text-field editing shortcuts.
+      if (typing) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) redo(); else undo();
@@ -125,7 +131,6 @@ export default function App() {
         redo();
         return;
       }
-      if (typing) return;
       if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId) {
         event.preventDefault();
         commit((current) => deleteElement(current, selectedId), 'Deleted selected element.');
@@ -142,6 +147,40 @@ export default function App() {
   const selected = findElement(project, selectedId);
   const selectedIsWall = selected && 'x1' in selected;
   const wallRun = project.walls.reduce((total, wall) => total + wallGeometry(wall).length, 0);
+
+
+  const changeUnits = (nextUnits) => {
+    if (nextUnits === project.metadata.units) return;
+    if (!window.confirm(`Convert the entire plan from ${project.metadata.units} to ${nextUnits}? All wall dimensions, symbol coordinates and grid spacing will be recalculated. One Undo restores the original.`)) return;
+    try {
+      const next = convertProjectUnits(project, nextUnits);
+      commit(next, `Converted plan to ${nextUnits}. Undo restores original dimensions.`);
+      setFitRequest((value) => value + 1);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unit conversion rejected.');
+    }
+  };
+
+  const editWallEndpoint = (id, endpoint, point) => {
+    try {
+      const next = moveWallEndpoint(project, id, endpoint, point);
+      if (next !== project) commit(next, `Moved wall ${endpoint} endpoint. Undo available.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Invalid wall edit; original retained.');
+    }
+  };
+
+  const editWallCoordinate = (id, key, text) => {
+    if (text.trim() === '') { setNotice('Enter a valid coordinate before applying.'); return; }
+    const value = Number(text);
+    if (!Number.isFinite(value)) { setNotice('Coordinate must be a finite number.'); return; }
+    try {
+      const next = updateElement(project, id, { [key]: value });
+      if (next !== project) commit(next, `Updated wall ${key} to ${value} ${project.metadata.units}.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Invalid wall coordinate; original retained.');
+    }
+  };
 
   const exportJson = () => {
     downloadText(safeFilename(project.metadata.title, 'openblueprint.json'), serializeProject(project), 'application/json');
@@ -166,6 +205,7 @@ export default function App() {
       commit(imported, `Imported ${file.name}.`);
       setSelectedId(null);
       setActiveTool('select');
+      setFitRequest((value) => value + 1);
     } catch (error) {
       setNotice(`Import rejected: ${error instanceof Error ? error.message : 'Unknown file error.'}`);
     }
@@ -191,12 +231,14 @@ export default function App() {
     setSelectedId(null);
     setActiveTool('select');
     setEvieProposal(null);
+    setFitRequest((value) => value + 1);
   };
 
   const clearPlan = () => {
     if (!window.confirm('Clear the current plan? You can still undo immediately afterward.')) return;
     commit(createEmptyProject(), 'Plan cleared. Undo is still available.');
     setSelectedId(null);
+    setFitRequest((value) => value + 1);
   };
 
   const restoreSample = () => {
@@ -205,6 +247,7 @@ export default function App() {
     }
     commit(createSampleProject(), 'Sample plan restored.');
     setSelectedId(null);
+    setFitRequest((value) => value + 1);
   };
 
   return (
@@ -265,7 +308,9 @@ export default function App() {
             project={project}
             activeTool={activeTool}
             selectedId={selectedId}
+            fitRequest={fitRequest}
             onSelect={setSelectedId}
+            onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
               commit((current) => addWall(current, wall), 'Wall added. Click another point to continue; Escape ends the chain.');
               setSelectedId(wall.id);
@@ -303,6 +348,24 @@ export default function App() {
             {selectedIsWall && <p className="inspector-metric">Selected wall length <strong>{wallGeometry(selected).length.toFixed(2)} {project.metadata.units}</strong></p>}
 
             {selectedIsWall && (
+              <div className="wall-coordinate-grid">
+                {['x1', 'y1', 'x2', 'y2'].map((key) => (
+                  <label key={key}>{key.toUpperCase()} <span>{project.metadata.units}</span>
+                    <input
+                      key={selected.id + '-' + key + '-' + selected[key]}
+                      type="number" step="any" defaultValue={selected[key]}
+                      onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                      onBlur={(event) => {
+                        if (event.target.value !== String(selected[key])) editWallCoordinate(selected.id, key, event.target.value);
+                      }}
+                    />
+                  </label>
+                ))}
+                <p>Drag the highlighted wall's endpoint handles in Select mode. Coordinate inputs commit on blur or Enter.</p>
+              </div>
+            )}
+
+            {selectedIsWall && (
               <div className="field-grid">
                 <label>Thickness <span>{project.metadata.units}</span><input type="number" min="0.1" max="10" step="0.1" value={selected.thickness} onChange={(event) => commit((current) => updateElement(current, selected.id, { thickness: Number(event.target.value) }))} /></label>
                 <label>Height <span>{project.metadata.units}</span><input type="number" min="0.5" max="100" step="0.5" value={selected.height} onChange={(event) => commit((current) => updateElement(current, selected.id, { height: Number(event.target.value) }))} /></label>
@@ -318,8 +381,8 @@ export default function App() {
             )}
 
             <div className="project-settings">
-              <label>Units<select value={project.metadata.units} onChange={(event) => commit((current) => touchProject(current, { metadata: { units: event.target.value } }), 'Project units label changed; existing numeric values were not converted.')}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
-              <label>Grid<select value={project.metadata.grid} onChange={(event) => commit((current) => touchProject(current, { metadata: { grid: Number(event.target.value) } }))}><option value="0.25">0.25</option><option value="0.5">0.5</option><option value="1">1</option><option value="2">2</option></select></label>
+              <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
+              <label>Grid<select value={project.metadata.grid} onChange={(event) => commit((current) => touchProject(current, { metadata: { grid: Number(event.target.value) } }))}>{![0.25, 0.5, 1, 2].includes(project.metadata.grid) && <option value={project.metadata.grid}>{Number(project.metadata.grid.toPrecision(6))}</option>}<option value="0.25">0.25</option><option value="0.5">0.5</option><option value="1">1</option><option value="2">2</option></select></label>
               <button className="small-button" onClick={restoreSample}>Sample</button>
               <button className="small-button danger-text" onClick={clearPlan}>Clear</button>
             </div>

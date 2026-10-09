@@ -5,6 +5,8 @@ import {
   createEmptyProject,
   createSampleProject,
   createWall,
+  convertProjectUnits,
+  moveWallEndpoint,
   deleteElement,
   parseProjectJson,
   serializeProject,
@@ -54,5 +56,41 @@ describe('project model', () => {
     expect(added.walls[0].height).toBe(9);
     expect(updated.walls[0].height).toBe(12);
     expect(deleted.walls).toHaveLength(0);
+  });
+  it('converts wall geometry, symbols and grid ft→m→ft without relabel-only errors', () => {
+    const original = createSampleProject();
+    const meters = convertProjectUnits(original, 'm');
+    expect(meters.schemaVersion).toBe(original.schemaVersion);
+    expect(meters.metadata.units).toBe('m');
+    expect(meters.metadata.grid).toBeCloseTo(0.3048, 10);
+    expect(meters.walls[0].x1).toBeCloseTo(0.9144, 10);
+    expect(meters.walls[0].height).toBeCloseTo(2.7432, 10);
+    expect(meters.walls[0].thickness).toBeCloseTo(0.1524, 10);
+    expect(meters.symbols[0].x).toBeCloseTo(3.048, 10);
+    expect(meters.symbols[0].rotation).toBe(original.symbols[0].rotation);
+    expect(original.metadata.units).toBe('ft');
+    const roundtrip = convertProjectUnits(meters, 'ft');
+    expect(roundtrip.walls[0].x1).toBeCloseTo(original.walls[0].x1, 9);
+    expect(roundtrip.walls[0].height).toBeCloseTo(original.walls[0].height, 9);
+    expect(roundtrip.metadata.grid).toBeCloseTo(1, 9);
+    expect(convertProjectUnits(original, 'ft')).toBe(original);
+  });
+
+  it('rejects conversions that would exceed v1 validation limits', () => {
+    const sample = createSampleProject();
+    sample.walls[0].thickness = 0.1; // valid ft, below v1 lower bound after conversion
+    expect(() => convertProjectUnits(sample, 'm')).toThrow('Unit conversion rejected');
+    expect(sample.metadata.units).toBe('ft');
+    expect(() => convertProjectUnits(sample, 'yards')).toThrow('Target units');
+  });
+
+  it('moves one endpoint with one immutable project mutation and rejects degenerate walls', () => {
+    const original = createSampleProject();
+    const result = moveWallEndpoint(original, 'wall-north', 'end', { x: 30, y: 4 });
+    expect(result.walls[0]).toMatchObject({ x1: 3, y1: 3, x2: 30, y2: 4 });
+    expect(original.walls[0].x2).toBe(31);
+    expect(moveWallEndpoint(original, 'wall-north', 'start', { x: 3, y: 3 })).toBe(original);
+    expect(() => moveWallEndpoint(original, 'wall-north', 'end', { x: 3, y: 3 })).toThrow('too short');
+    expect(() => moveWallEndpoint(original, 'wall-north', 'garbage', { x: 1, y: 1 })).toThrow('Endpoint');
   });
 });
