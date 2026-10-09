@@ -4,6 +4,11 @@ import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import { analyzeRooms } from './roomAnalysis.js';
 import { analyzeConnectedRooms } from './connectedRooms.js';
+import {
+  emptyAnnotations, loadRoomAnnotations, saveRoomAnnotations,
+  updateRoomAnnotation, roomAnnotationKey, matchingAnnotations,
+  serializeRoomAnnotations, parseRoomAnnotations,
+} from './roomAnnotations.js';
 import { parseEvieProposal, MAX_EVIE_PROPOSAL_BYTES } from './evieBridge.js';
 import {
   addSymbol,
@@ -71,6 +76,9 @@ export default function App() {
   const [threeFitRequest, setThreeFitRequest] = useState(0);
   const [showRooms, setShowRooms] = useState(true);
   const [analysisMode, setAnalysisMode] = useState('connected');
+  const [roomAnnotations, setRoomAnnotations] = useState(() => loadRoomAnnotations().doc);
+  const [selectedRoomKey, setSelectedRoomKey] = useState(null);
+  const annotationImportRef = useRef(null);
   const [pointer, setPointer] = useState(null);
   const [notice, setNotice] = useState(start.warning || 'Sample plan loaded — start drawing.');
   const [saveState, setSaveState] = useState('local');
@@ -121,6 +129,14 @@ export default function App() {
   }, [project]);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      try { saveRoomAnnotations(roomAnnotations); }
+      catch(error) { setNotice('Room annotations not saved: ' + error.message + '. Export an annotations backup.'); }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [roomAnnotations]);
+
+  useEffect(() => {
     const onKey = (event) => {
       if (evieProposal) return;
       const target = event.target;
@@ -154,7 +170,56 @@ export default function App() {
   const selectedIsWall = selected && 'x1' in selected;
   const wallRun = project.walls.reduce((total, wall) => total + wallGeometry(wall).length, 0);
   const analysis = useMemo(() => analysisMode === 'connected' ? analyzeConnectedRooms(project) : analyzeRooms(project), [project, analysisMode]);
+  const labeledAnalysis = useMemo(() => ({
+    ...analysis,
+    rooms:analysis.rooms.map(room => ({ ...room,
+      annotationKey:roomAnnotationKey(room,project.metadata.units,analysisMode),
+    })),
+  }),[analysis,project.metadata.units,analysisMode]);
+  const validRoomKeys = useMemo(() => new Set(labeledAnalysis.rooms.map(room => room.annotationKey).filter(Boolean)), [labeledAnalysis]);
+  const unmatchedAnnotations = Object.keys(roomAnnotations.entries).filter(k => !validRoomKeys.has(k)).length;
+  useEffect(() => {
+    setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
+  },[validRoomKeys]);
 
+
+  const selectRoom = (key) => {
+    if(!validRoomKeys.has(key)) return;
+    setSelectedId(null);
+    setSelectedRoomKey(key);
+    setActiveTool('select');
+  };
+  const updateSelectedRoom = (key, patch) => {
+    if(!validRoomKeys.has(key)) return;
+    try { setRoomAnnotations(current => updateRoomAnnotation(current,key,patch)); }
+    catch(error){setNotice('Room note rejected: ' + error.message);}
+  };
+  const replaceRoomNotesForNewPlan = () => {
+    setRoomAnnotations(emptyAnnotations());
+    setSelectedRoomKey(null);
+  };
+  const exportRoomNotes = () => {
+    try {
+      const matched = matchingAnnotations(roomAnnotations,[...validRoomKeys]);
+      downloadText(safeFilename(project.metadata.title,'rooms.json'),serializeRoomAnnotations(matched),'application/json');
+      setNotice('Current-room annotations exported separately from blueprint geometry.');
+    } catch(error){setNotice('Annotations export rejected: ' + error.message);}
+  };
+  const importRoomNotes = async(event) => {
+    const file=event.target.files?.[0];
+    event.target.value='';
+    if(!file) return;
+    try {
+      if(file.size>350000) throw new Error('Annotations file exceeds the 350 KB limit.');
+      const doc=parseRoomAnnotations(await file.text());
+      const matched=matchingAnnotations(doc,[...validRoomKeys]);
+      const count=Object.keys(matched.entries).length;
+      if(count===0) throw new Error('No annotation anchors match the current project geometry and analysis mode.');
+      if(!window.confirm(`Load ${count} matching room annotation(s)? Existing labels will be replaced. This does not change blueprint geometry.`)) return;
+      setRoomAnnotations(matched);
+      setNotice(`Imported ${count} matching room annotation(s); mismatched labels were ignored.`);
+    } catch(error){setNotice('Annotations import rejected: ' + error.message);}
+  };
 
   const changeUnits = (nextUnits) => {
     if (nextUnits === project.metadata.units) return;
@@ -210,6 +275,7 @@ export default function App() {
     try {
       const imported = parseProjectJson(await file.text());
       commit(imported, `Imported ${file.name}.`);
+      replaceRoomNotesForNewPlan();
       setSelectedId(null);
       setActiveTool('select');
       setFitRequest((value) => value + 1);
@@ -235,6 +301,7 @@ export default function App() {
   const acceptEvie = () => {
     if (!evieProposal) return;
     commit(evieProposal.project, 'Approved EVIE proposal loaded. Undo restores prior plan.');
+    replaceRoomNotesForNewPlan();
     setSelectedId(null);
     setActiveTool('select');
     setEvieProposal(null);
@@ -244,6 +311,7 @@ export default function App() {
   const clearPlan = () => {
     if (!window.confirm('Clear the current plan? You can still undo immediately afterward.')) return;
     commit(createEmptyProject(), 'Plan cleared. Undo is still available.');
+    replaceRoomNotesForNewPlan();
     setSelectedId(null);
     setFitRequest((value) => value + 1);
   };
@@ -253,6 +321,7 @@ export default function App() {
       if (!window.confirm('Replace the current plan with the sample? You can undo afterward.')) return;
     }
     commit(createSampleProject(), 'Sample plan restored.');
+    replaceRoomNotesForNewPlan();
     setSelectedId(null);
     setFitRequest((value) => value + 1);
   };
@@ -316,9 +385,12 @@ export default function App() {
             activeTool={activeTool}
             selectedId={selectedId}
             fitRequest={fitRequest}
-            roomAnalysis={analysis}
+            roomAnalysis={labeledAnalysis}
             showRooms={showRooms}
-            onSelect={setSelectedId}
+            selectedRoomKey={selectedRoomKey}
+            onSelectRoom={selectRoom}
+            roomAnnotations={roomAnnotations.entries}
+            onSelect={(id)=>{setSelectedId(id);if(id)setSelectedRoomKey(null);}}
             onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
               commit((current) => addWall(current, wall), 'Wall added. Click another point to continue; Escape ends the chain.');
@@ -392,7 +464,21 @@ export default function App() {
               </div>
             )}
 
-            <RoomAnalysisPanel analysis={analysis} units={project.metadata.units} showRooms={showRooms} onToggle={setShowRooms} mode={analysisMode} onModeChange={setAnalysisMode} />
+            <RoomAnalysisPanel
+              analysis={labeledAnalysis} units={project.metadata.units}
+              showRooms={showRooms} onToggle={setShowRooms}
+              mode={analysisMode} onModeChange={setAnalysisMode}
+              roomAnnotations={roomAnnotations.entries}
+              selectedRoomKey={selectedRoomKey} onSelectRoom={selectRoom}
+              onUpdateRoom={updateSelectedRoom} unmatchedAnnotations={unmatchedAnnotations}
+              onClearUnmatched={() => {
+                setRoomAnnotations(current => matchingAnnotations(current,[...validRoomKeys]));
+                setNotice('Unmatched room annotations discarded.');
+              }}
+              onExportAnnotations={exportRoomNotes}
+              onImportAnnotations={()=>annotationImportRef.current?.click()}
+            />
+            <input ref={annotationImportRef} type="file" hidden accept="application/json,.json" onChange={importRoomNotes} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
