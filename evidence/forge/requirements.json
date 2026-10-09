@@ -1,0 +1,26 @@
+{
+  "project": "OpenBlueprint Studio",
+  "candidate_version": "v0.1.0-candidate.1",
+  "requirements": [
+    {"id":"FR-01","required":true,"status":"Implemented"},
+    {"id":"FR-02","required":true,"status":"Implemented"},
+    {"id":"FR-03","required":true,"status":"Implemented"},
+    {"id":"FR-04","required":true,"status":"Implemented"},
+    {"id":"FR-05","required":true,"status":"Implemented"},
+    {"id":"FR-06","required":true,"status":"Implemented"},
+    {"id":"FR-07","required":true,"status":"Demonstrated locally"},
+    {"id":"FR-08","required":true,"status":"Demonstrated locally"},
+    {"id":"FR-09","required":true,"status":"Demonstrated locally"},
+    {"id":"FR-10","required":false,"status":"Implemented"},
+    {"id":"FR-11","required":true,"status":"Implemented"},
+    {"id":"FR-12","required":false,"status":"Implemented"},
+    {"id":"NFR-01","required":true,"status":"Executed locally"},
+    {"id":"NFR-02","required":false,"status":"Implemented"},
+    {"id":"NFR-03","required":false,"status":"Implemented"},
+    {"id":"NFR-04","required":true,"status":"Implemented"},
+    {"id":"NFR-05","required":true,"status":"Demonstrated locally"},
+    {"id":"NFR-06","required":false,"status":"Executed locally"},
+    {"id":"NFR-07","required":true,"status":"Implemented"},
+    {"id":"NFR-08","required":true,"status":"Implemented"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-008","requirement_id":"AC-012",
+  "artifact":{"name":"Locked npm dependency graph","version":"v0.1.0-candidate.1","hash":"sha256:11b5ef41eff4c8c46213b37676421dd820dd0d8b927c48d42f9d5eab329154cf"},
+  "preconditions":["npm registry reachable","Fresh locked install"],
+  "procedure":["Run npm audit --audit-level=high"],
+  "expected_result":"Command exits 0 with no current high-or-higher advisory.",
+  "observed_result":"Exit code 0; npm reported found 0 vulnerabilities.",
+  "classification":"Passed","evidence":["evidence/wayne/command-log.md#dependency-claim-check"],
+  "environment":{"npm":"11.9.0","timestamp_scope":"2026-08-02"},"uncertainty":["Future advisories and unreported defects remain possible; no security certification is implied"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:03Z"
+}
