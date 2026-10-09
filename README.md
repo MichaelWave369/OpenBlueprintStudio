@@ -68,3 +68,7 @@ The JSON interface is versioned as `openblueprint.project/1`. Imports are parsed
 ## License
 
 Project-authored source is available under the [MIT License](LICENSE). React, Three.js, Vite, Vitest, and GitHub Actions retain their own upstream licenses and terms.
+
+## EVIE CAD proposal handoff (rung 1)
+
+The **EVIE CAD** button stages a local JSON proposal, validates project geometry, and presents a read-only SVG review. Explicit human approval is required before replacing the current plan. This is **not** a live EVIE integration or verified EVIE provenance. See [EVIE CAD Bridge](docs/EVIE_CAD_BRIDGE_V1.md) and the synthetic example in `examples/`.

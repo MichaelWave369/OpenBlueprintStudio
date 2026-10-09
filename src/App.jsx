@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BlueprintCanvas from './BlueprintCanvas.jsx';
+import EvieProposalReview from './EvieProposalReview.jsx';
+import { parseEvieProposal, MAX_EVIE_PROPOSAL_BYTES } from './evieBridge.js';
 import {
   addSymbol,
   addWall,
@@ -60,8 +62,10 @@ export default function App() {
   const [pointer, setPointer] = useState(null);
   const [notice, setNotice] = useState(start.warning || 'Sample plan loaded — start drawing.');
   const [saveState, setSaveState] = useState('local');
+  const [evieProposal, setEvieProposal] = useState(null);
   const [graphicsStatus, setGraphicsStatus] = useState({ available: null, message: 'Checking WebGL 2…' });
   const importRef = useRef(null);
+  const evieRef = useRef(null);
   const project = history.present;
 
   const commit = useCallback((nextOrUpdater, message) => {
@@ -106,6 +110,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (event) => {
+      if (evieProposal) return;
       const target = event.target;
       const typing = target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
@@ -130,7 +135,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [commit, redo, selectedId, undo]);
+  }, [commit, redo, selectedId, undo, evieProposal]);
 
   const selected = findElement(project, selectedId);
   const selectedIsWall = selected && 'x1' in selected;
@@ -161,6 +166,28 @@ export default function App() {
     } catch (error) {
       setNotice(`Import rejected: ${error instanceof Error ? error.message : 'Unknown file error.'}`);
     }
+  };
+
+  const importEvie = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      if (file.size > MAX_EVIE_PROPOSAL_BYTES) throw new Error('EVIE proposal file is too large.');
+      const staged = parseEvieProposal(await file.text());
+      setEvieProposal(staged);
+      setNotice('EVIE proposal staged for review. Current plan unchanged.');
+    } catch (error) {
+      setNotice(`EVIE proposal rejected: ${error instanceof Error ? error.message : 'Unknown error.'}`);
+    }
+  };
+
+  const acceptEvie = () => {
+    if (!evieProposal) return;
+    commit(evieProposal.project, 'Approved EVIE proposal loaded. Undo restores prior plan.');
+    setSelectedId(null);
+    setActiveTool('select');
+    setEvieProposal(null);
   };
 
   const clearPlan = () => {
@@ -197,10 +224,12 @@ export default function App() {
           />
         </div>
         <div className="top-actions">
+          <button className="ghost-button" onClick={() => evieRef.current?.click()} title="Stage an EVIE CAD proposal">EVIE CAD</button>
           <button className="ghost-button" onClick={() => importRef.current?.click()}>Import</button>
           <button className="ghost-button" onClick={exportJson}>JSON</button>
           <button className="primary-button" onClick={exportSvg}>Export SVG</button>
           <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={importJson} />
+          <input ref={evieRef} type="file" accept="application/json,.json" hidden onChange={importEvie} />
         </div>
       </header>
 
@@ -293,6 +322,12 @@ export default function App() {
         </section>
       </main>
 
+      {evieProposal && <EvieProposalReview
+        proposal={evieProposal}
+        currentProject={project}
+        onApprove={acceptEvie}
+        onReject={() => { setEvieProposal(null); setNotice('Proposal rejected. Current plan unchanged.'); }}
+      />}
       <footer className="statusbar" aria-live="polite">
         <div><span className="status-light" />{notice}</div>
         <div className="status-stats">
