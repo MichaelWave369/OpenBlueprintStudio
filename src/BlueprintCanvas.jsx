@@ -289,9 +289,9 @@ export default function BlueprintCanvas({
         </g>
 
         {activeTool === 'select' && displayedWalls.filter((wall) => wall.id === selectedId).flatMap((wall) => [
-          { id: 'start', point: toScreen({ x: wall.x1, y: wall.y1 }) },
-          { id: 'end', point: toScreen({ x: wall.x2, y: wall.y2 }) },
-        ]).map(({ id, point }) => (
+          { id: 'start', point: toScreen({ x: wall.x1, y: wall.y1 }), modelPoint: { x: wall.x1, y: wall.y1 } },
+          { id: 'end', point: toScreen({ x: wall.x2, y: wall.y2 }), modelPoint: { x: wall.x2, y: wall.y2 } },
+        ]).map(({ id, point, modelPoint }) => (
           <circle
             key={id} cx={point.x} cy={point.y} r="8"
             className="wall-endpoint-handle" role="button" tabIndex="-1"
@@ -299,8 +299,7 @@ export default function BlueprintCanvas({
             onPointerDown={(event) => {
               if (event.button !== 0) return;
               event.stopPropagation();
-              const initialPoint = id === 'start' ? { x: wall.x1, y: wall.y1 } : { x: wall.x2, y: wall.y2 };
-              setDraggingEndpoint({ id: selectedId, endpoint: id, point: initialPoint, moved: false });
+              setDraggingEndpoint({ id: selectedId, endpoint: id, point: modelPoint, moved: false });
               svgRef.current?.setPointerCapture?.(event.pointerId);
             }}
           />
