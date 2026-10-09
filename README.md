@@ -6,6 +6,9 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R4 CAD editing:** drag selected wall endpoints with preview and one Undo step per drag; edit precise endpoint X/Y values in the inspector on blur/Enter.
+- **True unit conversion:** feet ↔ meters scales wall coordinates, dimensions, symbols and grid as one validated edit. Out-of-range projects are rejected rather than silently clamped.
+- **2D viewport:** zoom in/out, Fit, and Pan (H) are interface-only; they never change saved project geometry. SVG pointer mapping respects viewBox scaling and letterboxing.
 - **Measure (M)**: click two grid points for a read-only distance and angle. A third click starts another measurement; Escape clears it. Measurements do not alter project history, JSON or autosave.
 - Selected wall length and total wall centerline run, clearly distinct from certified perimeter/area calculations.
 - Undo/redo, browser-local autosave, validated JSON import/export, scalable SVG export.
@@ -39,6 +42,7 @@ The GitHub repository is still called `OpenBlueprintStudio` until manually renam
 | V | Select |
 | W | Draw wall |
 | M | Measure two points |
+| H | Pan view (drag) |
 | D | Door |
 | I | Window |
 | O | Outlet |
@@ -47,6 +51,13 @@ The GitHub repository is still called `OpenBlueprintStudio` until manually renam
 | Ctrl/Cmd + Z | Undo |
 | Ctrl/Cmd + Y / Ctrl/Cmd + Shift + Z | Redo |
 | Escape | Cancel a wall chain / clear measurement |
+
+## R4 acceptance notes
+
+- Unit conversions work for projects that remain within v1 numeric limits (wall thickness ≥ 0.1, height ≥ 0.5, finite coordinates, supported grid). Otherwise conversion is rejected without editing the plan.
+- Drag wall endpoints in Select mode. The preview is not persisted until release; invalid geometry is rejected. Precise inspector edits are also validated.
+- Zoom, pan and fit never enter JSON, browser autosave or undo history.
+- Unit conversion is one undoable project edit, not a change of label.
 
 ## Data compatibility
 
