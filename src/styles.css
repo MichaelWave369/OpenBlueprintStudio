@@ -175,3 +175,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .room-method { color: #7c9bae; font-size: 10px; line-height: 1.5; margin: 9px 0 0; }
 .preview-column .inspector { max-height: 46vh; overflow-y: auto; }
 @media (max-width:1080px) { .preview-column .inspector { max-height: none; overflow: visible; } }
+
+/* R6 connected topology controls */
+.analysis-mode { display: grid; gap: 5px; margin: 10px 0 7px; color: #89b3c7; font-size: 10px; }
+.analysis-mode select { background: #07101b; color: #d7f2ff; border: 1px solid var(--line); padding: 7px; width: 100%; }
+.topology-summary { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 9px 0; color: #88cbdc; font: 10px Consolas, monospace; }
+.topology-summary span { border: 1px solid rgba(87,215,255,.14); padding: 4px 6px; }

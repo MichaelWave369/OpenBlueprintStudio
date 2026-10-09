@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R6 connected-room topology:** in-memory T-junction splitting and planar bounded-face detection handles shared partitions and the original sample layout without modifying stored walls. Switch to strict R5 analysis as a negative-control comparison. X-crossings, collinear overlaps, nested boundaries, and ambiguous interior spurs withhold area.
 - **R5 conservative room analysis:** isolated, closed centerline wall loops yield approximate enclosed areas and optional noninteractive SVG region overlays. T-junctions, crossings, overlaps, nested loops, and degenerate geometry *withhold* misleading area claims. This is **not usable floor area** or certified survey output.
 - **Fit 3D:** explicit camera framing based on wall and symbol bounds, including a recentered 3D ground plane; all camera movement stays outside project JSON and history.
 - **R4 CAD editing:** drag selected wall endpoints with preview and one Undo step per drag; edit precise endpoint X/Y values in the inspector on blur/Enter.
@@ -74,3 +75,7 @@ See [EVIE CAD bridge documentation](docs/EVIE_CAD_BRIDGE_V1.md). The `examples/`
 ## R5 area analysis safety
 
 Area readouts are **conceptual areas enclosed by wall centerlines**, not net usable room measurements; door/window openings, wall thickness, jurisdictional codes, connected rooms and structural constraints are not modeled. The current sample plan intentionally produces a **topology warning** because it contains unsplit T-junctions. For an example of a supported rectangle, draw a four-wall loop sharing actual start/end coordinates, with no crossings or overlapping segments. See [R5 design gate](docs/OPENBLUE_R5.md).
+
+## R6 topology limitations
+
+The default **Connected wall faces (R6)** engine analyzes room-like *regions*, not authenticated rooms, structural partitions, or net usable floor area. Shared-wall statistics count actual normalized subsegments with bounded faces on both sides. **Isolated closed loops (R5)** remains available as a stricter comparison. In ambiguous geometry, it is safer to show no area than a false area. Analysis is calculated locally and never saved to project JSON, evie-proposal files, or the network. See [R6 topology contract](docs/OPENBLUE_R6.md).
