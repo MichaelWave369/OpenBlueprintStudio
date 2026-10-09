@@ -1,4 +1,4 @@
-name: Deploy OpenBlueprint Studio to Pages
+name: Deploy OpenBlue to Pages
 
 on:
   push:

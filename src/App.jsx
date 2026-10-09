@@ -13,6 +13,7 @@ import {
   serializeProject,
   touchProject,
   updateElement,
+  wallGeometry,
 } from './model.js';
 import { loadStoredProject, saveStoredProject } from './storage.js';
 import { projectToSvg } from './svgExport.js';
@@ -22,6 +23,7 @@ const ThreePreview = lazy(() => import('./ThreePreview.jsx'));
 const TOOLS = [
   { id: 'select', key: 'V', label: 'Select', icon: '↖' },
   { id: 'wall', key: 'W', label: 'Wall', icon: '╱' },
+  { id: 'measure', key: 'M', label: 'Measure', icon: '⌁' },
   { id: 'door', key: 'D', label: 'Door', icon: 'D' },
   { id: 'window', key: 'I', label: 'Window', icon: 'W' },
   { id: 'outlet', key: 'O', label: 'Outlet', icon: 'O' },
@@ -50,7 +52,7 @@ function downloadText(filename, text, mimeType) {
 }
 
 function safeFilename(title, extension) {
-  const base = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'openblueprint-plan';
+  const base = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'openblue-plan';
   return `${base}.${extension}`;
 }
 
@@ -139,6 +141,7 @@ export default function App() {
 
   const selected = findElement(project, selectedId);
   const selectedIsWall = selected && 'x1' in selected;
+  const wallRun = project.walls.reduce((total, wall) => total + wallGeometry(wall).length, 0);
 
   const exportJson = () => {
     downloadText(safeFilename(project.metadata.title, 'openblueprint.json'), serializeProject(project), 'application/json');
@@ -211,7 +214,7 @@ export default function App() {
           <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>
           <div>
             <div className="eyebrow">OPEN SOURCE · LOCAL FIRST</div>
-            <div className="brand-title">OpenBlueprint <b>Studio</b></div>
+            <div className="brand-title">Open<b>Blue</b> <span className="brand-suffix">Studio</span></div>
           </div>
         </div>
         <div className="project-title-wrap">
@@ -297,6 +300,8 @@ export default function App() {
 
             {!selected && <p className="empty-copy">Select a wall or symbol to edit it. Use Delete to remove a selected element.</p>}
 
+            {selectedIsWall && <p className="inspector-metric">Selected wall length <strong>{wallGeometry(selected).length.toFixed(2)} {project.metadata.units}</strong></p>}
+
             {selectedIsWall && (
               <div className="field-grid">
                 <label>Thickness <span>{project.metadata.units}</span><input type="number" min="0.1" max="10" step="0.1" value={selected.thickness} onChange={(event) => commit((current) => updateElement(current, selected.id, { thickness: Number(event.target.value) }))} /></label>
@@ -333,6 +338,7 @@ export default function App() {
         <div className="status-stats">
           <span>{project.walls.length} walls</span>
           <span>{project.symbols.length} symbols</span>
+          <span title="Sum of wall centerline segments, not perimeter">{wallRun.toFixed(1)} {project.metadata.units} wall run</span>
           <span>{pointer ? `X ${pointer.x.toFixed(2)} · Y ${pointer.y.toFixed(2)}` : 'Pointer outside canvas'}</span>
           <span>{saveState}</span>
           <span title={graphicsStatus.message}>{graphicsStatus.available ? 'WebGL 2' : graphicsStatus.message}</span>

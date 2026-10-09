@@ -132,3 +132,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* OpenBlue brand and measurement readout. */
+.brand-suffix { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: .04em; vertical-align: 2px; }
+.inspector-metric { display: flex; justify-content: space-between; gap: 8px; margin: 12px 0 0; color: var(--muted); font-size: 11px; }
+.inspector-metric strong { color: var(--cyan); white-space: nowrap; }
+.measurement-layer line { stroke: #f7b84b; stroke-width: 2.5; stroke-dasharray: 6 4; }
+.measurement-layer circle { fill: #f7b84b; stroke: #071525; stroke-width: 2; }
+.measurement-layer text { fill: #fff0ca; font-family: "SFMono-Regular", Consolas, monospace; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: #071525; stroke-width: 5px; }
