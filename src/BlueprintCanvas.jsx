@@ -32,6 +32,9 @@ export default function BlueprintCanvas({
   fitRequest,
   roomAnalysis,
   showRooms,
+  roomAnnotations,
+  selectedRoomKey,
+  onSelectRoom,
   onSelect,
   onMoveWallEndpoint,
   onAddWall,
@@ -214,16 +217,32 @@ export default function BlueprintCanvas({
         <rect x={viewport.x} y={viewport.y} width={viewport.width} height={viewport.height} fill="#071525" />
         {gridVisible && <rect x={viewport.x} y={viewport.y} width={viewport.width} height={viewport.height} fill="url(#majorGrid)" />}
 
-        {showRooms && ['ready', 'partial'].includes(roomAnalysis?.status) && (
-          <g className="room-overlay" pointerEvents="none" aria-hidden="true">
-            {roomAnalysis.rooms.map((room, index) => (
-              <g key={room.id}>
-                <polygon points={room.vertices.map(p => { const s = toScreen(p); return s.x + ',' + s.y; }).join(' ')} />
-                <text x={toScreen(room.centroid).x} y={toScreen(room.centroid).y} textAnchor="middle">
-                  {index + 1} · {room.area.toFixed(1)} {project.metadata.units}²
-                </text>
-              </g>
-            ))}
+        {showRooms && ['ready','partial'].includes(roomAnalysis?.status) && (
+          <g className="room-overlay" aria-label="Room annotation overlays">
+            {roomAnalysis.rooms.map((room,index) => {
+              const key=room.annotationKey;
+              const highlighted=key && selectedRoomKey===key;
+              const label=roomAnnotations?.[key]?.name || `Zone ${index+1}`;
+              const points=room.vertices.map(p=>{const s=toScreen(p);return s.x+','+s.y;}).join(' ');
+              return (
+                <g key={room.id} className={highlighted?'room-overlay-selected':''}>
+                  <polygon
+                    points={points}
+                    pointerEvents={activeTool==='select' && key?'visiblePainted':'none'}
+                    onPointerDown={event=>{
+                      if(activeTool!=='select' || event.button!==0 || !key)return;
+                      event.stopPropagation();
+                      onSelectRoom(key);
+                    }}
+                    aria-label={`Select ${label} conceptual room region`}
+                  />
+                  <text x={toScreen(room.centroid).x} y={toScreen(room.centroid).y}
+                    textAnchor="middle" pointerEvents="none">
+                    {label} · {room.area.toFixed(1)} {project.metadata.units}²
+                  </text>
+                </g>
+              );
+            })}
           </g>
         )}
         <g aria-label="Walls">

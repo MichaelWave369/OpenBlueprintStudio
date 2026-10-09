@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R7 room annotations:** select recognized regions on the 2D canvas or sidebar; edit name, planned use, and design notes. Annotated labels appear over zones. Metadata is saved locally as a separately versioned sidecar and can be exported/imported with explicit matching checks; blueprint and EVIE schema stay unchanged. Modified boundaries never silently inherit old notes.
 - **R6 connected-room topology:** in-memory T-junction splitting and planar bounded-face detection handles shared partitions and the original sample layout without modifying stored walls. Switch to strict R5 analysis as a negative-control comparison. X-crossings, collinear overlaps, nested boundaries, and ambiguous interior spurs withhold area.
 - **R5 conservative room analysis:** isolated, closed centerline wall loops yield approximate enclosed areas and optional noninteractive SVG region overlays. T-junctions, crossings, overlaps, nested loops, and degenerate geometry *withhold* misleading area claims. This is **not usable floor area** or certified survey output.
 - **Fit 3D:** explicit camera framing based on wall and symbol bounds, including a recentered 3D ground plane; all camera movement stays outside project JSON and history.
@@ -79,3 +80,7 @@ Area readouts are **conceptual areas enclosed by wall centerlines**, not net usa
 ## R6 topology limitations
 
 The default **Connected wall faces (R6)** engine analyzes room-like *regions*, not authenticated rooms, structural partitions, or net usable floor area. Shared-wall statistics count actual normalized subsegments with bounded faces on both sides. **Isolated closed loops (R5)** remains available as a stricter comparison. In ambiguous geometry, it is safer to show no area than a false area. Analysis is calculated locally and never saved to project JSON, evie-proposal files, or the network. See [R6 topology contract](docs/OPENBLUE_R6.md).
+
+## R7 local annotation sidecar
+
+Select a recognized zone to assign a **name**, **planned use**, and **design notes**. These represent conceptual operator intent, not verified architectural room classifications. Labels are stored in local browser storage under `openblue/room-annotations-v1` and can be backed up as `*.rooms.json` using Export notes. Blueprints remain `openblueprint.project/1`; EVIE proposal files remain `openblueprint.evie-proposal/1`. Rooms are anchored by original wall IDs and cyclic boundary geometry normalized to meters, so feet-to-meters conversion preserves labels but boundary changes intentionally orphan old metadata. Incoming plan replacement clears the current active sidecar, so **export annotations before importing another plan or approving EVIE**. Room note imports only apply anchors matching the current project and current analysis mode, with confirmation. See [R7 data contract](docs/OPENBLUE_R7.md).

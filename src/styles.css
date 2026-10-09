@@ -181,3 +181,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .analysis-mode select { background: #07101b; color: #d7f2ff; border: 1px solid var(--line); padding: 7px; width: 100%; }
 .topology-summary { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 9px 0; color: #88cbdc; font: 10px Consolas, monospace; }
 .topology-summary span { border: 1px solid rgba(87,215,255,.14); padding: 4px 6px; }
+
+/* R7: room selection, properties, and annotation sidecar controls. */
+.room-select { cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; padding:9px; border:1px solid var(--line); background:rgba(87,215,255,.025); text-align:left; color:#a9d6e4; }
+.room-select:hover { border-color:rgba(87,215,255,.5); }
+.room-select.active { border-color:var(--amber); background:rgba(247,184,75,.11); }
+.room-select:disabled { opacity:.5; cursor:not-allowed; }
+.room-select span { min-width:0; display:grid; gap:3px; }
+.room-select small { color:var(--muted); font-size:9px; }
+.room-select strong { color:#d5f4ff; white-space:nowrap; font-size:11px; font-variant-numeric:tabular-nums; }
+.room-overlay polygon { cursor:crosshair; }
+.room-overlay-selected polygon { fill:rgba(247,184,75,.23); stroke:var(--amber); stroke-width:2; }
+.room-overlay-selected text { fill:#ffe5a1; }
+.room-properties { display:grid; gap:10px; margin-top:12px; padding:12px; border:1px solid rgba(247,184,75,.3); background:rgba(247,184,75,.045); }
+.room-properties>strong { color:var(--amber); font-size:11px; }
+.room-properties label { display:grid; gap:4px; font-size:10px; color:#91b9ca; }
+.room-properties input,.room-properties select,.room-properties textarea { width:100%; min-width:0; background:#07101b; border:1px solid var(--line); padding:8px; font:inherit; color:#e9f8ff; resize:vertical; }
+.room-properties p { margin:0; color:var(--muted); font-size:10px; line-height:1.5; }
+.room-stats { display:flex; flex-wrap:wrap; gap:8px; font:10px Consolas,monospace; color:#b9e5f4; }
+.room-annotation-actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; color:var(--muted); font-size:10px; }
+.room-annotation-actions span { flex:1; }
+.room-unmatched { margin-top:10px; padding:9px; border:1px solid rgba(247,184,75,.25); }
+.room-unmatched p { color:#dfb97b; margin:0 0 7px; font-size:10px; line-height:1.5; }
