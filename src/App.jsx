@@ -3,6 +3,7 @@ import BlueprintCanvas from './BlueprintCanvas.jsx';
 import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import { analyzeRooms } from './roomAnalysis.js';
+import { analyzeConnectedRooms } from './connectedRooms.js';
 import { parseEvieProposal, MAX_EVIE_PROPOSAL_BYTES } from './evieBridge.js';
 import {
   addSymbol,
@@ -69,6 +70,7 @@ export default function App() {
   const [fitRequest, setFitRequest] = useState(0);
   const [threeFitRequest, setThreeFitRequest] = useState(0);
   const [showRooms, setShowRooms] = useState(true);
+  const [analysisMode, setAnalysisMode] = useState('connected');
   const [pointer, setPointer] = useState(null);
   const [notice, setNotice] = useState(start.warning || 'Sample plan loaded — start drawing.');
   const [saveState, setSaveState] = useState('local');
@@ -151,7 +153,7 @@ export default function App() {
   const selected = findElement(project, selectedId);
   const selectedIsWall = selected && 'x1' in selected;
   const wallRun = project.walls.reduce((total, wall) => total + wallGeometry(wall).length, 0);
-  const analysis = useMemo(() => analyzeRooms(project), [project]);
+  const analysis = useMemo(() => analysisMode === 'connected' ? analyzeConnectedRooms(project) : analyzeRooms(project), [project, analysisMode]);
 
 
   const changeUnits = (nextUnits) => {
@@ -390,7 +392,7 @@ export default function App() {
               </div>
             )}
 
-            <RoomAnalysisPanel analysis={analysis} units={project.metadata.units} showRooms={showRooms} onToggle={setShowRooms} />
+            <RoomAnalysisPanel analysis={analysis} units={project.metadata.units} showRooms={showRooms} onToggle={setShowRooms} mode={analysisMode} onModeChange={setAnalysisMode} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
