@@ -154,13 +154,16 @@ export default function BlueprintCanvas({
     setHoverPoint(point);
     onPointerCoordinate(point);
     if (draggingEndpoint) {
-      setDraggingEndpoint((current) => current ? { ...current, point } : null);
+      setDraggingEndpoint((current) => current ? {
+        ...current, point,
+        moved: current.moved || current.point.x !== point.x || current.point.y !== point.y,
+      } : null);
     } else if (draggingSymbol) onMoveSymbol(draggingSymbol, point);
   };
 
   const handlePointerUp = (event) => {
     if (draggingEndpoint) {
-      onMoveWallEndpoint(draggingEndpoint.id, draggingEndpoint.endpoint, pointerToModel(event));
+      if (draggingEndpoint.moved) onMoveWallEndpoint(draggingEndpoint.id, draggingEndpoint.endpoint, pointerToModel(event));
       setDraggingEndpoint(null);
     }
     setPanState(null);
@@ -296,7 +299,8 @@ export default function BlueprintCanvas({
             onPointerDown={(event) => {
               if (event.button !== 0) return;
               event.stopPropagation();
-              setDraggingEndpoint({ id: selectedId, endpoint: id, point: pointerToModel(event) });
+              const initialPoint = id === 'start' ? { x: wall.x1, y: wall.y1 } : { x: wall.x2, y: wall.y2 };
+              setDraggingEndpoint({ id: selectedId, endpoint: id, point: initialPoint, moved: false });
               svgRef.current?.setPointerCapture?.(event.pointerId);
             }}
           />

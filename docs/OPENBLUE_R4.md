@@ -23,3 +23,5 @@
 - No BIM / structural / code-compliance assertion.
 - No authenticated EVIE execution or unsolicited data transmission.
 - Imported `openblueprint.project/1` format and browser localStorage key remain unchanged.
+
+- Clicking a selected endpoint without dragging is a no-op (no unwanted snap or history entry). Dragging begins from the exact stored coordinate; grid snap only applies when moved.
