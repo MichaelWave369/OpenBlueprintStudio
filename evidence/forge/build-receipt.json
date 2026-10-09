@@ -1,0 +1,85 @@
+{
+  "receipt_type": "build",
+  "receipt_version": "1.0",
+  "build_id": "BUILD-OBS-0001",
+  "project": "OpenBlueprint Studio",
+  "candidate_version": "v0.1.0-candidate.1",
+  "milestone_id": "OBS-M1",
+  "controlling_specification": {
+    "name": "OpenBlueprint Studio Master Product Specification",
+    "version": "v0.1 Draft",
+    "hash": "sha256:3db8154c63d70379186b04dd8e10ef413025afa91fc0b21ad4d232bbce37ad59"
+  },
+  "requirement_ids": [
+    "FR-01", "FR-02", "FR-03", "FR-04", "FR-05", "FR-06",
+    "FR-07", "FR-08", "FR-09", "FR-10", "FR-11", "FR-12",
+    "NFR-01", "NFR-02", "NFR-03", "NFR-04", "NFR-05", "NFR-06", "NFR-07", "NFR-08"
+  ],
+  "change_summary": "Created the bounded local-first React/SVG drafting vertical slice, lazy Three.js/WebGL 2 preview, local persistence, validated JSON, SVG export, tests, MIT license, and GitHub Pages workflow.",
+  "files_created": [
+    "package.json", "package-lock.json", "vite.config.js", "index.html", "LICENSE", "README.md",
+    "public/favicon.svg", ".github/workflows/deploy.yml",
+    "src/main.jsx", "src/App.jsx", "src/BlueprintCanvas.jsx", "src/ThreePreview.jsx", "src/model.js", "src/storage.js", "src/svgExport.js", "src/styles.css",
+    "src/model.test.js", "src/storage.test.js", "src/svgExport.test.js",
+    "dist/index.html", "dist/favicon.svg", "dist/assets/index-BDxhzEbp.css", "dist/assets/index-DQnmYOxE.js", "dist/assets/ThreePreview-ZRAiq3jZ.js",
+    "evidence/forge/specification-freeze-receipt.md", "evidence/forge/milestone-build-plan.md", "evidence/forge/requirements.json", "evidence/forge/requirements-to-build-register.md", "evidence/forge/command-log.md", "evidence/forge/dependency-receipt.md"
+  ],
+  "files_modified": [],
+  "files_deleted": [],
+  "commands_run": [
+    {
+      "command": "NPM_CONFIG_CACHE=/workspace/scratch/74bfbbfbb49a/.npm-cache npm install --no-audit --no-fund",
+      "exit_code": 0,
+      "output_reference": "evidence/forge/command-log.md#dependency-install"
+    },
+    {
+      "command": "NPM_CONFIG_CACHE=/workspace/scratch/74bfbbfbb49a/.npm-cache npm test",
+      "exit_code": 0,
+      "output_reference": "evidence/forge/command-log.md#unit-tests"
+    },
+    {
+      "command": "NPM_CONFIG_CACHE=/workspace/scratch/74bfbbfbb49a/.npm-cache npm run build",
+      "exit_code": 0,
+      "output_reference": "evidence/forge/command-log.md#production-build"
+    },
+    {
+      "command": "NPM_CONFIG_CACHE=/workspace/scratch/74bfbbfbb49a/.npm-cache npm audit --audit-level=high",
+      "exit_code": 0,
+      "output_reference": "evidence/forge/command-log.md#dependency-audit"
+    },
+    {
+      "command": "npm run preview -- --host 127.0.0.1 plus curl checks",
+      "exit_code": 0,
+      "output_reference": "evidence/forge/command-log.md#static-preview-smoke"
+    }
+  ],
+  "implementation_statuses": ["Implemented", "Integrated", "Executed locally", "Demonstrated locally", "Unable to verify", "Deferred"],
+  "evidence": [
+    "evidence/forge/command-log.md",
+    "evidence/forge/requirements-to-build-register.md",
+    "evidence/forge/dependency-receipt.md",
+    "dist/index.html"
+  ],
+  "deviation_ids": [],
+  "known_issues": [
+    "No graphical browser was available, so rendered UI, WebGL output, pointer and keyboard behavior, responsive layout, and accessibility conformance are unable to verify at Forge stage.",
+    "The GitHub Pages workflow was statically reviewed but not executed because no repository or publication authority was supplied.",
+    "The lazy Three.js preview chunk is 547,896 bytes minified; the initial UI chunk is 213,770 bytes.",
+    "OpenBlueprint Studio remains a candidate name without clearance evidence."
+  ],
+  "environment": {
+    "os": "Linux 6.12.13 x86_64 GNU/Linux",
+    "node": "v24.14.0",
+    "npm": "11.9.0",
+    "python": "3.12.13",
+    "timezone": "UTC"
+  },
+  "executor": "Parallax Implementation Forge",
+  "timestamp": "2026-08-02T22:49:11Z",
+  "reproducibility_notes": [
+    "Run from the repository root.",
+    "Use npm ci to reproduce the locked dependency tree.",
+    "Use npm test, npm run build, and npm run preview.",
+    "A browser with WebGL 2 is required to verify the 3D and full interaction paths."
+  ]
+}

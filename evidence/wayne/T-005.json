@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-005","requirement_id":"AC-006",
+  "artifact":{"name":"OpenBlueprint Studio dist","version":"v0.1.0-candidate.1","hash":"dist/index.html sha256:53285be2fcb470934f7f7e1b72295db90fc712291b49708a4f32acc8a8d827c3"},
+  "preconditions":["Successful production build","Local Vite preview"],
+  "procedure":["Request index HTML","Extract relative asset paths","Request initial JS, lazy Three JS, and favicon"],
+  "expected_result":"HTML is served and each required static asset returns HTTP 200.",
+  "observed_result":"Index contained relative JS/CSS paths; initial JS, lazy Three preview JS, and favicon returned HTTP 200.",
+  "classification":"Passed","evidence":["evidence/wayne/command-log.md#static-package-smoke"],
+  "environment":{"vite":"8.2.0","host":"127.0.0.1:4173"},"uncertainty":["HTTP success does not establish DOM render or WebGL execution"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:30Z"
+}

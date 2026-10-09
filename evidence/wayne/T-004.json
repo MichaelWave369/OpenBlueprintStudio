@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-004","requirement_id":"AC-005",
+  "artifact":{"name":"SVG export function","version":"v0.1.0-candidate.1","hash":"identified within candidate package"},
+  "preconditions":["Sample project generator","Node and Python XML parser"],
+  "procedure":["Run SVG unit fixtures","Generate hostile-title SVG","Pipe output into ElementTree","Count script elements"],
+  "expected_result":"SVG tests pass; XML parses; hostile text is escaped; zero script elements; concept boundary retained.",
+  "observed_result":"Unit fixtures passed; independent XML parse succeeded; zero script elements were present.",
+  "classification":"Passed","evidence":["src/svgExport.test.js","evidence/wayne/command-log.md#edge-and-failure-probes"],
+  "environment":{"node":"v24.14.0","python":"3.12.13"},"uncertainty":["Visual appearance in downstream SVG viewers was not inspected"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:03Z"
+}

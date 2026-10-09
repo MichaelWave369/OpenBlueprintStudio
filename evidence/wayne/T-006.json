@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-006","requirement_id":"AC-007, AC-008",
+  "artifact":{"name":"Client source and GitHub Pages workflow","version":"v0.1.0-candidate.1","hash":"identified within candidate package"},
+  "preconditions":["Source tree and workflow available"],
+  "procedure":["Scan source for network APIs and remote assets","Parse workflow YAML","Inspect build/deploy jobs and action SHA pins"],
+  "expected_result":"No project-data transfer path is found; workflow parses with required pinned actions/jobs.",
+  "observed_result":"No fetch/XHR/WebSocket/beacon/remote font/application endpoint was detected; YAML parsed with build and deploy jobs; all uses entries are full SHA pins.",
+  "classification":"Passed","evidence":["evidence/wayne/command-log.md#edge-and-failure-probes",".github/workflows/deploy.yml"],
+  "environment":{"ripgrep":"available","python_yaml":"available"},"uncertainty":["Static scan is not a security certification; live GitHub job was not run"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:03Z"
+}

@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-002","requirement_id":"AC-002",
+  "artifact":{"name":"OpenBlueprint Studio source candidate","version":"v0.1.0-candidate.1","hash":"package-lock sha256:11b5ef41eff4c8c46213b37676421dd820dd0d8b927c48d42f9d5eab329154cf"},
+  "preconditions":["Node v24.14.0","npm registry reachable","locked package file present"],
+  "procedure":["Run npm ci","Run npm test","Run npm run build"],
+  "expected_result":"Locked install, 9 tests, and production build exit 0.",
+  "observed_result":"npm ci exited 0; 3 test files/9 tests passed; Vite transformed 25 modules and built static assets with exit 0.",
+  "classification":"Passed","evidence":["evidence/wayne/command-log.md#clean-install","evidence/wayne/command-log.md#independent-unitregression-run","evidence/wayne/command-log.md#independent-production-build"],
+  "environment":{"node":"v24.14.0","npm":"11.9.0","vite":"8.2.0","vitest":"4.1.10"},"uncertainty":["Build success does not establish browser behavior"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:03Z"
+}

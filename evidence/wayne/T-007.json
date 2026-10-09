@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-007","requirement_id":"AC-009, AC-010, AC-011",
+  "artifact":{"name":"OpenBlueprint Studio browser interaction and WebGL paths","version":"v0.1.0-candidate.1","hash":"dist/index.html sha256:53285be2fcb470934f7f7e1b72295db90fc712291b49708a4f32acc8a8d827c3"},
+  "preconditions":["Graphical browser with WebGL 2 and controllable viewport/focus"],
+  "procedure":["Inventory browser executables","Attempt only if capability exists"],
+  "expected_result":"Exercise wall/symbol/history/import/export/reload/keyboard/responsive/WebGL/fallback flows with observed evidence.",
+  "observed_result":"No chromium, chromium-browser, or google-chrome executable was present; graphical procedures were not executed.",
+  "classification":"Unable to verify","evidence":["evidence/wayne/command-log.md#capability-finding"],
+  "environment":{"graphical_browser":"absent"},"uncertainty":["Rendered UI, pointer/keyboard flow, WebGL scene, fallback behavior, responsiveness, and accessibility remain unobserved"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:30Z"
+}

@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-001","requirement_id":"AC-001",
+  "artifact":{"name":"OpenBlueprint Studio controlling specification and Forge evidence","version":"v0.1 / v0.1.0-candidate.1","hash":"sha256:3db8154c63d70379186b04dd8e10ef413025afa91fc0b21ad4d232bbce37ad59"},
+  "preconditions":["Specification, detached log, Forge receipt/register/report available"],
+  "procedure":["Recompute specification SHA-256","Run strict master-spec checker","Validate Forge build receipt","Run requirement coverage and Forge report checks"],
+  "expected_result":"Controlling hash matches and all packaged governance checks return zero errors.",
+  "observed_result":"Hash matched; master specification passed with 0 errors/0 warnings; Forge receipt and coverage passed; Forge report returned 0 errors/0 warnings.",
+  "classification":"Passed","evidence":["evidence/wayne/command-log.md#intake-and-chain-of-custody"],
+  "environment":{"python":"3.12.13","timezone":"UTC"},"uncertainty":["Static checkers do not establish product correctness"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:52:00Z"
+}

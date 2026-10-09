@@ -1,0 +1,10 @@
+{
+  "receipt_type":"test","receipt_version":"1.0","test_id":"T-003","requirement_id":"AC-003, AC-004",
+  "artifact":{"name":"Project model and persistence adapter","version":"v0.1.0-candidate.1","hash":"identified within candidate package"},
+  "preconditions":["Vitest suite from clean install"],
+  "procedure":["Execute model and storage fixtures for round-trip, malformed input, bounds, duplicate IDs, and corrupt local storage"],
+  "expected_result":"Valid data round-trips; invalid data is rejected; corrupt storage returns no project and a bounded error.",
+  "observed_result":"All model and persistence fixtures passed within the 9-test independent suite.",
+  "classification":"Passed","evidence":["src/model.test.js","src/storage.test.js","evidence/wayne/command-log.md#independent-unitregression-run"],
+  "environment":{"vitest":"4.1.10","environment":"node"},"uncertainty":["Browser reload and File API interaction were not observed"],"executor":"Wayne Rider","timestamp":"2026-08-02T22:53:03Z"
+}
