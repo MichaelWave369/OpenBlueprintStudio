@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { wallGeometry } from './model.js';
+import { computeCameraFit } from './cameraFit.js';
 
 const SYMBOL_COLORS = {
   door: 0xf7b84b,
@@ -19,7 +20,7 @@ function disposeGroup(group) {
   }
 }
 
-export default function ThreePreview({ project, selectedId, onStatus }) {
+export default function ThreePreview({ project, selectedId, fitRequest, threeFitRequest, onStatus }) {
   const mountRef = useRef(null);
   const sceneState = useRef(null);
 
@@ -75,7 +76,7 @@ export default function ThreePreview({ project, selectedId, onStatus }) {
 
     const content = new THREE.Group();
     scene.add(content);
-    sceneState.current = { renderer, scene, camera, controls, content };
+    sceneState.current = { renderer, scene, camera, controls, content, floor, grid };
 
     const resize = () => {
       const width = Math.max(1, mount.clientWidth);
@@ -111,11 +112,40 @@ export default function ThreePreview({ project, selectedId, onStatus }) {
       disposeGroup(content);
       floor.geometry.dispose();
       floor.material.dispose();
+      sceneState.current?.grid?.geometry?.dispose();
+      sceneState.current?.grid?.material?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       sceneState.current = null;
     };
   }, [onStatus]);
+
+  // A camera operation, separate from model edits: only explicit Fit or import/replace.
+  useEffect(() => {
+    const state = sceneState.current;
+    if (!state) return;
+    const fit = computeCameraFit(project);
+    const { camera, controls, scene, floor } = state;
+    controls.target.set(...fit.target);
+    camera.position.set(...fit.position);
+    camera.far = Math.max(500, fit.distance * 5);
+    camera.updateProjectionMatrix();
+    controls.minDistance = Math.max(1, fit.distance / 50);
+    controls.maxDistance = Math.max(120, fit.distance * 4);
+    scene.fog.near = Math.max(45, fit.distance * 1.4);
+    scene.fog.far = Math.max(90, fit.distance * 5);
+    floor.geometry.dispose();
+    floor.geometry = new THREE.PlaneGeometry(fit.groundSize, fit.groundSize);
+    floor.position.set(fit.target[0], -0.04, fit.target[2]);
+    scene.remove(state.grid);
+    state.grid.geometry.dispose();
+    state.grid.material.dispose();
+    const grid = new THREE.GridHelper(fit.groundSize, 80, 0x2baed7, 0x14364b);
+    grid.position.set(fit.target[0], 0, fit.target[2]);
+    scene.add(grid);
+    state.grid = grid;
+    controls.update();
+  }, [fitRequest, threeFitRequest]);
 
   useEffect(() => {
     const state = sceneState.current;

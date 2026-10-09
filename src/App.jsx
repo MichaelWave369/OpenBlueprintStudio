@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BlueprintCanvas from './BlueprintCanvas.jsx';
 import EvieProposalReview from './EvieProposalReview.jsx';
+import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
+import { analyzeRooms } from './roomAnalysis.js';
 import { parseEvieProposal, MAX_EVIE_PROPOSAL_BYTES } from './evieBridge.js';
 import {
   addSymbol,
@@ -65,6 +67,8 @@ export default function App() {
   const [activeTool, setActiveTool] = useState('select');
   const [selectedId, setSelectedId] = useState(null);
   const [fitRequest, setFitRequest] = useState(0);
+  const [threeFitRequest, setThreeFitRequest] = useState(0);
+  const [showRooms, setShowRooms] = useState(true);
   const [pointer, setPointer] = useState(null);
   const [notice, setNotice] = useState(start.warning || 'Sample plan loaded — start drawing.');
   const [saveState, setSaveState] = useState('local');
@@ -147,6 +151,7 @@ export default function App() {
   const selected = findElement(project, selectedId);
   const selectedIsWall = selected && 'x1' in selected;
   const wallRun = project.walls.reduce((total, wall) => total + wallGeometry(wall).length, 0);
+  const analysis = useMemo(() => analyzeRooms(project), [project]);
 
 
   const changeUnits = (nextUnits) => {
@@ -309,6 +314,8 @@ export default function App() {
             activeTool={activeTool}
             selectedId={selectedId}
             fitRequest={fitRequest}
+            roomAnalysis={analysis}
+            showRooms={showRooms}
             onSelect={setSelectedId}
             onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
@@ -328,10 +335,13 @@ export default function App() {
         <section className="preview-column" aria-label="3D preview and inspector">
           <div className="panel-heading">
             <div><span className="panel-index">02</span><h2>Live build</h2></div>
-            <span className={graphicsStatus.available ? 'panel-badge live' : 'panel-badge'}>{graphicsStatus.available ? '● LIVE' : '2D MODE'}</span>
+            <div className="preview-actions">
+              <button className="small-button" type="button" title="Frame entire plan in 3D" onClick={() => setThreeFitRequest(v => v + 1)} disabled={graphicsStatus.available === false}>Fit 3D</button>
+              <span className={graphicsStatus.available ? 'panel-badge live' : 'panel-badge'}>{graphicsStatus.available ? '● LIVE' : '2D MODE'}</span>
+            </div>
           </div>
           <Suspense fallback={<div className="preview-loading">Loading 3D engine…</div>}>
-            <ThreePreview project={project} selectedId={selectedId} onStatus={setGraphicsStatus} />
+            <ThreePreview project={project} selectedId={selectedId} fitRequest={fitRequest} threeFitRequest={threeFitRequest} onStatus={setGraphicsStatus} />
           </Suspense>
 
           <div className="inspector">
@@ -379,6 +389,8 @@ export default function App() {
                 <label>Rotate <span>°</span><input type="number" step="15" value={selected.rotation} onChange={(event) => commit((current) => updateElement(current, selected.id, { rotation: Number(event.target.value) }))} /></label>
               </div>
             )}
+
+            <RoomAnalysisPanel analysis={analysis} units={project.metadata.units} showRooms={showRooms} onToggle={setShowRooms} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

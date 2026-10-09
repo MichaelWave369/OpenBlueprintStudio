@@ -6,6 +6,8 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R5 conservative room analysis:** isolated, closed centerline wall loops yield approximate enclosed areas and optional noninteractive SVG region overlays. T-junctions, crossings, overlaps, nested loops, and degenerate geometry *withhold* misleading area claims. This is **not usable floor area** or certified survey output.
+- **Fit 3D:** explicit camera framing based on wall and symbol bounds, including a recentered 3D ground plane; all camera movement stays outside project JSON and history.
 - **R4 CAD editing:** drag selected wall endpoints with preview and one Undo step per drag; edit precise endpoint X/Y values in the inspector on blur/Enter.
 - **True unit conversion:** feet ↔ meters scales wall coordinates, dimensions, symbols and grid as one validated edit. Out-of-range projects are rejected rather than silently clamped.
 - **2D viewport:** zoom in/out, Fit, and Pan (H) are interface-only; they never change saved project geometry. SVG pointer mapping respects viewBox scaling and letterboxing.
@@ -68,3 +70,7 @@ See [EVIE CAD bridge documentation](docs/EVIE_CAD_BRIDGE_V1.md). The `examples/`
 ## License
 
 [MIT](LICENSE). Dependencies have their own upstream terms.
+
+## R5 area analysis safety
+
+Area readouts are **conceptual areas enclosed by wall centerlines**, not net usable room measurements; door/window openings, wall thickness, jurisdictional codes, connected rooms and structural constraints are not modeled. The current sample plan intentionally produces a **topology warning** because it contains unsplit T-junctions. For an example of a supported rectangle, draw a four-wall loop sharing actual start/end coordinates, with no crossings or overlapping segments. See [R5 design gate](docs/OPENBLUE_R5.md).
