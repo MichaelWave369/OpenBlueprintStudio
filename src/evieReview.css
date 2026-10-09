@@ -1,0 +1,21 @@
+.evie-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,5,12,.9); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
+.evie-dialog { width: min(100%, 1050px); max-height: calc(100vh - 40px); display: flex; flex-direction: column; background: #081828; border: 1px solid rgba(87,215,255,.4); box-shadow: 0 25px 80px #000b; }
+.evie-head { padding: 20px 22px 12px; }
+.evie-head h2 { margin: 5px 0; font-size: 21px; }
+.evie-head p { color: #a2b9c9; line-height: 1.5; margin: 5px 0; font-size: 12px; }
+.evie-columns { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(230px,.65fr); gap: 14px; min-height: 0; overflow-y: auto; padding: 0 22px 15px; }
+.evie-drawing { min-height: 220px; background: #ddebf6; display: grid; place-items: center; overflow: hidden; }
+.evie-drawing img { display: block; width: 100%; max-height: min(50vh,520px); object-fit: contain; }
+.evie-facts h3 { margin: 0 0 8px; overflow-wrap: anywhere; }
+.evie-facts dl { margin: 0; display: grid; grid-template-columns: 80px 1fr; gap: 8px; font-size: 12px; }
+.evie-facts dt { color: #8daabd; }
+.evie-facts dd { margin: 0; overflow-wrap: anywhere; }
+.evie-warning { font-size: 12px; line-height: 1.6; color: #f8d49b; }
+.evie-actions { padding: 14px 22px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(87,215,255,.18); }
+@media (max-width: 760px) {
+  .evie-overlay { align-items: start; padding: 8px; }
+  .evie-dialog { max-height: none; }
+  .evie-columns { display: block; overflow: visible; }
+  .evie-drawing img { max-height: 35vh; }
+  .evie-facts { margin-top: 16px; }
+}
