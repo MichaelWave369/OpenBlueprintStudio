@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSymbol, createWall, snap, wallGeometry } from './model.js';
+import { formatMeasurement, measureSegment } from './measurement.js';
 
 const VIEW_WIDTH = 900;
 const VIEW_HEIGHT = 600;
@@ -37,6 +38,8 @@ export default function BlueprintCanvas({
   const [draftStart, setDraftStart] = useState(null);
   const [hoverPoint, setHoverPoint] = useState(null);
   const [draggingSymbol, setDraggingSymbol] = useState(null);
+  const [measureStart, setMeasureStart] = useState(null);
+  const [measureEnd, setMeasureEnd] = useState(null);
 
   const gridStep = Math.max(0.25, project.metadata.grid);
   const gridPixels = SCALE * gridStep;
@@ -55,6 +58,8 @@ export default function BlueprintCanvas({
     setDraftStart(null);
     setHoverPoint(null);
     setDraggingSymbol(null);
+    setMeasureStart(null);
+    setMeasureEnd(null);
   }, [activeTool]);
 
   useEffect(() => {
@@ -62,6 +67,8 @@ export default function BlueprintCanvas({
       if (event.key === 'Escape') {
         setDraftStart(null);
         setDraggingSymbol(null);
+        setMeasureStart(null);
+        setMeasureEnd(null);
       }
     };
     window.addEventListener('keydown', cancel);
@@ -75,6 +82,11 @@ export default function BlueprintCanvas({
     const point = pointerToModel(event);
     if (activeTool === 'select') {
       onSelect(null);
+      return;
+    }
+    if (activeTool === 'measure') {
+      if (!measureStart || measureEnd) { setMeasureStart(point); setMeasureEnd(null); }
+      else if (Math.hypot(point.x - measureStart.x, point.y - measureStart.y) >= 0.1) setMeasureEnd(point);
       return;
     }
     if (activeTool === 'wall') {
@@ -99,6 +111,9 @@ export default function BlueprintCanvas({
   };
 
   const draftPath = draftStart && hoverPoint ? wallPath({ x1: draftStart.x, y1: draftStart.y, x2: hoverPoint.x, y2: hoverPoint.y }) : null;
+  const measureTarget = measureEnd || hoverPoint;
+  const measurement = measureStart && measureTarget ? measureSegment(measureStart, measureTarget) : null;
+  const measurementPath = measurement ? wallPath({ x1: measureStart.x, y1: measureStart.y, x2: measureTarget.x, y2: measureTarget.y }) : null;
 
   return (
     <div className="canvas-shell">
@@ -114,6 +129,7 @@ export default function BlueprintCanvas({
         onPointerUp={() => setDraggingSymbol(null)}
         onPointerLeave={() => {
           setDraggingSymbol(null);
+          setHoverPoint(null);
           onPointerCoordinate(null);
         }}
       >
@@ -149,7 +165,8 @@ export default function BlueprintCanvas({
                   className="hit-line"
                   onPointerDown={(event) => {
                     event.stopPropagation();
-                    onSelect(wall.id);
+                    if (activeTool === 'measure') handleBackgroundPointerDown(event);
+                    else onSelect(wall.id);
                   }}
                 />
                 <line
@@ -193,6 +210,7 @@ export default function BlueprintCanvas({
                 aria-label={meta.label}
                 onPointerDown={(event) => {
                   event.stopPropagation();
+                  if (activeTool === 'measure') { handleBackgroundPointerDown(event); return; }
                   onSelect(symbol.id);
                   if (activeTool === 'select') {
                     setDraggingSymbol(symbol.id);
@@ -207,6 +225,16 @@ export default function BlueprintCanvas({
           })}
         </g>
 
+        {measurementPath && (
+          <g className="measurement-layer" pointerEvents="none" aria-hidden="true">
+            <line x1={measurementPath.start.x} y1={measurementPath.start.y} x2={measurementPath.end.x} y2={measurementPath.end.y} />
+            <circle cx={measurementPath.start.x} cy={measurementPath.start.y} r="5" />
+            <circle cx={measurementPath.end.x} cy={measurementPath.end.y} r="5" />
+            <text x={(measurementPath.start.x + measurementPath.end.x) / 2} y={(measurementPath.start.y + measurementPath.end.y) / 2 - 14} textAnchor="middle">
+              {formatMeasurement(measurement, project.metadata.units)}
+            </text>
+          </g>
+        )}
         {draftPath && (
           <g pointerEvents="none" aria-hidden="true">
             <line x1={draftPath.start.x} y1={draftPath.start.y} x2={draftPath.end.x} y2={draftPath.end.y} stroke="#f7b84b" strokeWidth="5" strokeDasharray="10 7" />
@@ -216,7 +244,7 @@ export default function BlueprintCanvas({
       </svg>
       <div className="canvas-corner-note">
         <span className="pulse-dot" />
-        {draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
+        {activeTool === 'measure' ? (measureEnd ? `Measured ${formatMeasurement(measurement, project.metadata.units)} · click again to start over` : measureStart ? 'Click end point · Esc to cancel' : 'Measure · click first point') : draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
       </div>
     </div>
   );

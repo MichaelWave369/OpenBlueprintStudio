@@ -1,50 +1,36 @@
-# OpenBlueprint Studio
+# OpenBlue
 
-OpenBlueprint Studio is a free, MIT-licensed, local-first blueprint and schematic editor. The v0.1 candidate provides a grid-snapped SVG drafting surface and a live Three.js/WebGL 2 concept preview in a static React app.
+**OpenBlue** is a free, MIT-licensed, local-first blueprint and schematic studio. It continues the original **OpenBlueprint Studio** project.
 
-## What the v0.1 candidate does
+## Features
 
-- draw and select walls on a configurable grid;
-- edit wall height and thickness;
-- place and move door, window, outlet, and network-drop symbols;
-- undo and redo drawing mutations;
-- autosave to browser local storage;
-- import/export a validated, versioned JSON project;
-- export a standalone SVG concept drawing;
-- degrade to a usable 2D editor when WebGL 2 is unavailable;
-- build as static assets suitable for GitHub Pages.
+- SVG drawing surface for walls, doors, windows, outlets and network drops.
+- Live, lazy-loaded Three.js concept preview.
+- **Measure (M)**: click two grid points for a read-only distance and angle. A third click starts another measurement; Escape clears it. Measurements do not alter project history, JSON or autosave.
+- Selected wall length and total wall centerline run, clearly distinct from certified perimeter/area calculations.
+- Undo/redo, browser-local autosave, validated JSON import/export, scalable SVG export.
+- EVIE CAD proposal-file review: read-only SVG preview, explicit approval/rejection and undo. **This is not a live EVIE agent connection or authenticated provenance.**
+- Graceful 2D fallback when WebGL 2 is absent.
 
-It is not a professional CAD kernel, BIM platform, engineering-analysis tool, code-compliance checker, or certified construction-document system. Verify dimensions and requirements before field use.
+OpenBlue is a **concept** editor, not a professional CAD/BIM kernel, structural checker, building code engine or certified construction-document generator. Verify plans before field use.
 
-## Run locally
+## Local development
 
-Requirements: Node.js 22 or newer and npm.
+Requires Node.js 22+.
 
 ```bash
 npm ci
 npm run dev
-```
-
-Then open the local URL printed by Vite.
-
-## Test and build
-
-```bash
 npm test
 npm run build
 npm run preview
 ```
 
-The production assets are written to `dist/`. Vite uses a relative asset base so the package works under a GitHub project-pages path as well as a local static preview.
-
 ## GitHub Pages
 
-1. Push this repository to GitHub with the default branch named `main`.
-2. Open **Settings → Pages**.
-3. Set **Source** to **GitHub Actions**.
-4. Push to `main` or manually run the included **Deploy OpenBlueprint Studio to Pages** workflow.
+Set **Settings → Pages → Source: GitHub Actions**. Merge to `main` or run **Deploy OpenBlue to Pages**. Vite uses a relative asset base for project Pages URLs.
 
-The workflow tests and builds before uploading `dist`. Publication remains a human-controlled repository action.
+The GitHub repository is still called `OpenBlueprintStudio` until manually renamed to `OpenBlue` under **Settings → General → Repository name**. After renaming, confirm the Pages URL and update links. See [R3 migration and measurement notes](docs/OPENBLUE_R3.md).
 
 ## Keyboard controls
 
@@ -52,23 +38,22 @@ The workflow tests and builds before uploading `dist`. Publication remains a hum
 |---|---|
 | V | Select |
 | W | Draw wall |
-| D | Place door |
-| I | Place window |
-| O | Place outlet |
-| N | Place network drop |
+| M | Measure two points |
+| D | Door |
+| I | Window |
+| O | Outlet |
+| N | Network drop |
 | Delete / Backspace | Delete selection |
 | Ctrl/Cmd + Z | Undo |
-| Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z | Redo |
-| Escape | End/cancel wall chain |
+| Ctrl/Cmd + Y / Ctrl/Cmd + Shift + Z | Redo |
+| Escape | Cancel a wall chain / clear measurement |
 
-## Project data
+## Data compatibility
 
-The JSON interface is versioned as `openblueprint.project/1`. Imports are parsed as data, validated, and rejected before replacing the current project if the schema is malformed or unsupported. No project telemetry or automatic cloud upload is included.
+The product and npm package are renamed, **not the saved data contract**. Existing `openblueprint.project/1` and `openblueprint.evie-proposal/1` schema versions and the `openblueprint-studio/project-v1` localStorage key are unchanged. Existing project exports remain importable.
+
+See [EVIE CAD bridge documentation](docs/EVIE_CAD_BRIDGE_V1.md). The `examples/` proposal is **synthetic**, not a verified EVIE execution.
 
 ## License
 
-Project-authored source is available under the [MIT License](LICENSE). React, Three.js, Vite, Vitest, and GitHub Actions retain their own upstream licenses and terms.
-
-## EVIE CAD proposal handoff (rung 1)
-
-The **EVIE CAD** button stages a local JSON proposal, validates project geometry, and presents a read-only SVG review. Explicit human approval is required before replacing the current plan. This is **not** a live EVIE integration or verified EVIE provenance. See [EVIE CAD Bridge](docs/EVIE_CAD_BRIDGE_V1.md) and the synthetic example in `examples/`.
+[MIT](LICENSE). Dependencies have their own upstream terms.

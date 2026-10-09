@@ -55,7 +55,7 @@ export function projectToSvg(input) {
   ${symbols}
   <g transform="translate(${margin} ${height - 58})" font-family="Arial,sans-serif" fill="#123d66">
     <text x="0" y="0" font-size="22" font-weight="700">${title}</text>
-    <text x="0" y="24" font-size="11">Units: ${units} · Grid: ${project.metadata.grid} ${units} · OpenBlueprint project schema 1</text>
+    <text x="0" y="24" font-size="11">Units: ${units} · Grid: ${project.metadata.grid} ${units} · OpenBlue · openblueprint.project/1</text>
     <text x="${width - margin * 2}" y="24" text-anchor="end" font-size="10">CONCEPT DRAWING — user-authored; verify dimensions and requirements before use.</text>
   </g>
 </svg>`;
