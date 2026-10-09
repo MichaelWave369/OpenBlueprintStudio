@@ -14,7 +14,7 @@ const cross = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
 const valid = p => Number.isFinite(p.x) && Number.isFinite(p.y);
 const err = (walls, message, status = 'ambiguous') => ({
   status, rooms: [], warnings: [message], analyzedWalls: walls, normalizedSegments: 0,
-  junctions: 0, sharedSegments: 0, sharedWallIds: [],
+  junctions: 0, sharedSegments: 0, sharedWallIds: [], sharedBoundaries: [],
 });
 const within = (p, a, b) => {
   const d = len(a, b);
@@ -165,7 +165,17 @@ export function analyzeConnectedRooms(project) {
       return err(walls.length,'Nested closed boundaries could represent voids/holes. Area withheld until topology includes explicit voids.');
     }
   }
-  const shared=[...usedFaceEdge.entries()].filter(([,owners])=>owners.length===2).map(([index])=>edges[index]);
+  const sharedEntries=[...usedFaceEdge.entries()].filter(([,owners])=>owners.length===2);
+  const shared=sharedEntries.map(([index])=>edges[index]);
+  // A genuine adjacency requires exactly the same normalized boundary edge to
+  // belong to two bounded faces; sharing an original wall ID alone is insufficient.
+  const sharedBoundaries=sharedEntries.map(([index,owners])=>{
+    const edge=edges[index], a=vertices.get(edge.a), b=vertices.get(edge.b);
+    return {
+      zoneA:rooms[owners[0]].id, zoneB:rooms[owners[1]].id,
+      wallId:edge.id, length:len(a,b),
+    };
+  });
   if ([...usedFaceEdge.values()].some(owners=>owners.length>2)) return err(walls.length,'A normalized edge belongs to more than two bounded faces; area withheld.');
   const orphanCount=edges.length-usedFaceEdge.size;
   const status=orphanCount ? 'partial':'ready';
@@ -178,5 +188,6 @@ export function analyzeConnectedRooms(project) {
     analyzedWalls:walls.length, normalizedSegments:edges.length,
     junctions:edges.length-walls.length, sharedSegments:shared.length,
     sharedWallIds:[...new Set(shared.map(edge=>edge.id))],
+    sharedBoundaries,
   };
 }

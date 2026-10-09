@@ -65,6 +65,25 @@ describe('R6 connected wall centerline topology',()=>{
     expect(out.status).toBe('ready');
     expect(out.rooms[0].area).toBeCloseTo(100*0.3048*0.3048,8);
   });
+  it('tracks adjacency by exact shared subsegments, not by wall name',()=>{
+    const boundary=[
+      {id:'n',x1:0,y1:0,x2:20,y2:0,thickness:0.5,height:9},
+      {id:'e',x1:20,y1:0,x2:20,y2:10,thickness:0.5,height:9},
+      {id:'s',x1:20,y1:10,x2:0,y2:10,thickness:0.5,height:9},
+      {id:'w',x1:0,y1:10,x2:0,y2:0,thickness:0.5,height:9},
+      {id:'partition',x1:10,y1:0,x2:10,y2:10,thickness:0.5,height:9},
+    ];
+    const r=analyzeConnectedRooms(plan(boundary));
+    expect(r.status).toBe('ready');
+    expect(r.sharedBoundaries).toHaveLength(1);
+    const shared=r.sharedBoundaries[0];
+    expect(shared.wallId).toBe('partition');
+    expect(shared.length).toBeCloseTo(10);
+    expect(new Set([shared.zoneA,shared.zoneB]).size).toBe(2);
+    const disjoint=analyzeConnectedRooms(plan([...rect('a',0,0,4,4),...rect('b',10,0,4,4)]));
+    expect(disjoint.sharedBoundaries).toEqual([]);
+  });
+
   it('leaves legacy project identifiers and dimensions unchanged',()=>{
     const p=createSampleProject(),schema=p.schemaVersion,grid=p.metadata.grid;
     analyzeConnectedRooms(p);

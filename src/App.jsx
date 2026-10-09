@@ -2,6 +2,8 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import BlueprintCanvas from './BlueprintCanvas.jsx';
 import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
+import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
+import {analyzeNetworkPlan,networkReviewSnapshot} from './networkPlanning.js';
 import { analyzeRooms } from './roomAnalysis.js';
 import { analyzeConnectedRooms } from './connectedRooms.js';
 import {
@@ -76,6 +78,8 @@ export default function App() {
   const [threeFitRequest, setThreeFitRequest] = useState(0);
   const [showRooms, setShowRooms] = useState(true);
   const [analysisMode, setAnalysisMode] = useState('connected');
+  const [networkHubId,setNetworkHubId] = useState('');
+  const [showNetworkGuides,setShowNetworkGuides] = useState(true);
   const [roomAnnotations, setRoomAnnotations] = useState(() => loadRoomAnnotations().doc);
   const [selectedRoomKey, setSelectedRoomKey] = useState(null);
   const annotationImportRef = useRef(null);
@@ -177,6 +181,8 @@ export default function App() {
     })),
   }),[analysis,project.metadata.units,analysisMode]);
   const validRoomKeys = useMemo(() => new Set(labeledAnalysis.rooms.map(room => room.annotationKey).filter(Boolean)), [labeledAnalysis]);
+  const networkReport = useMemo(() => analyzeNetworkPlan(project,labeledAnalysis,roomAnnotations.entries,networkHubId),
+    [project,labeledAnalysis,roomAnnotations,networkHubId]);
   const unmatchedAnnotations = Object.keys(roomAnnotations.entries).filter(k => !validRoomKeys.has(k)).length;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -195,8 +201,14 @@ export default function App() {
     catch(error){setNotice('Room note rejected: ' + error.message);}
   };
   const replaceRoomNotesForNewPlan = () => {
+    setNetworkHubId('');
     setRoomAnnotations(emptyAnnotations());
     setSelectedRoomKey(null);
+  };
+  const exportNetworkSnapshot=()=>{
+    downloadText(safeFilename(project.metadata.title,'network-review.json'),
+      JSON.stringify(networkReviewSnapshot(project,networkReport),null,2),'application/json');
+    setNotice('Concept-only network inventory exported; direct distances are NOT routed cable lengths.');
   };
   const exportRoomNotes = () => {
     try {
@@ -390,6 +402,7 @@ export default function App() {
             selectedRoomKey={selectedRoomKey}
             onSelectRoom={selectRoom}
             roomAnnotations={roomAnnotations.entries}
+            networkGuide={networkHubId && showNetworkGuides ? networkReport : null}
             onSelect={(id)=>{setSelectedId(id);if(id)setSelectedRoomKey(null);}}
             onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
@@ -479,6 +492,14 @@ export default function App() {
               onImportAnnotations={()=>annotationImportRef.current?.click()}
             />
             <input ref={annotationImportRef} type="file" hidden accept="application/json,.json" onChange={importRoomNotes} />
+
+            <NetworkPlanningPanel
+              report={networkReport} hubId={networkReport.hubId||''}
+              onSetHub={setNetworkHubId}
+              showGuides={showNetworkGuides} onToggleGuides={setShowNetworkGuides}
+              onSelectDrop={id=>{setActiveTool('select');setSelectedRoomKey(null);setSelectedId(id);}}
+              onExport={exportNetworkSnapshot} selectedId={selectedId}
+            />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
