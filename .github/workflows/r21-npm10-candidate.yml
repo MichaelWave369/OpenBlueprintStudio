@@ -1,0 +1,26 @@
+name: R21 · npm10 lockfile compatibility
+on:
+  push:
+    branches: [feat/openblue-r21-full-audit]
+permissions:
+  contents: read
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+      - name: Regenerate from scratch using repository standard npm 10
+        run: |
+          npm --version
+          rm package-lock.json
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+          npm audit --audit-level=low
+          npm test
+          npm run build
+      - name: Emit npm10-compatible lockfile
+        run: |
+          node -e "const fs=require('fs');console.log('R21_NPM10_LOCK_BEGIN');console.log(fs.readFileSync('package-lock.json').toString('base64'));console.log('R21_NPM10_LOCK_END');"
