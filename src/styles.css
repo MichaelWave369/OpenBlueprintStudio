@@ -508,3 +508,31 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .workspace-audit-finding>strong{font:700 10px Consolas,monospace;color:#cfeefb}
 .workspace-audit-finding p{font-size:10px;color:#c0d6e1;line-height:1.55;margin:0}
 .workspace-audit-finding small{font:9px Consolas,monospace;color:var(--muted);overflow-wrap:anywhere}
+
+/* R19 explicit operator-saved checkpoints and read-only per-record diffs. */
+.project-timeline-panel{display:grid;gap:11px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+.project-timeline-panel .room-panel-heading h3{font-size:12px;margin:3px 0 0}
+.timeline-checkpoint-list{display:grid;gap:8px;max-height:460px;overflow-y:auto}
+.timeline-checkpoint{display:grid;gap:7px;padding:11px;border:1px solid var(--line);background:#0a1b2b;overflow-wrap:anywhere}
+.timeline-checkpoint.chosen{border-color:rgba(87,215,255,.7);background:rgba(87,215,255,.06)}
+.timeline-pick{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer}
+.timeline-pick input{flex:none;accent-color:var(--cyan)}
+.timeline-pick span{font-size:11px;font-weight:700;color:#e1f8ff;overflow-wrap:anywhere}
+.timeline-checkpoint>small{font:9px Consolas,monospace;color:var(--muted)}
+.timeline-checkpoint>span{font-size:10px;color:#a4c6d8;line-height:1.55}
+.timeline-checkpoint .pathway-actions{display:flex;flex-wrap:wrap;gap:6px}
+.timeline-checkpoint .small-button{font-size:10px;padding:7px 9px}
+.timeline-compare{display:grid;gap:10px;padding:11px;border:1px solid rgba(87,215,255,.25)}
+.timeline-compare>strong{font-size:11px;color:#dff7ff}
+.timeline-compare>label{display:grid;gap:5px;font-size:10px;color:#aac9d9}
+.timeline-compare>label select{width:100%;min-width:0;background:#071525;color:#eafaff;border:1px solid var(--line);padding:8px}
+.timeline-diff-report{display:grid;gap:9px}
+.timeline-diff-report>.rack-row-title strong{font:700 11px Consolas,monospace;color:#e5faff}
+.timeline-diff-report>.rack-row-title span{font:9px Consolas,monospace;color:var(--amber)}
+.timeline-diff-report>span{font-size:10px;color:#a9d5e6;overflow-wrap:anywhere}
+.timeline-diff-report>p{font-size:10px;color:#a7bdca;line-height:1.55;margin:0}
+.timeline-diff-section{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;row-gap:5px;
+ border:1px solid var(--line);padding:8px;font-size:10px}
+.timeline-diff-section>strong{color:#def4ff}
+.timeline-diff-section>span{font:10px Consolas,monospace;color:#a8deec}
+.timeline-diff-section>small{grid-column:1 / -1;color:var(--muted);font:9px Consolas,monospace;overflow-wrap:anywhere}
