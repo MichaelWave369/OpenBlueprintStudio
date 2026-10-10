@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R24 Mobile & Keyboard Accessibility:** responsive 360–390px layouts, first-focus skip link, visibly outlined keyboard focus and native coordinate-based wall entry with Undo; seven real Chromium E2E scenarios now gate regressions. This is not full WCAG certification.
 - **R22 Operator Self-Test:** explicit privacy-safe, read-only health checks for active schema, local autosave comparison, R17 vault and R19 checkpoint integrity, R18 static consistency, R20 isolated recovery, browser capabilities and approximate storage headroom. No telemetry, uploads, repairs or real-device checks.
 - **R21 complete dependency security cleanup:** Vitest and its mocker, nanoid and source-map-js updated via a tool-generated lockfile; the full npm audit (including development/build tools) is now a blocking CI gate, with pinned-version regression tests. No application/CAD behavior changes.
 - **R20 Recovery Confidence Drill & Dependency Gates:** run a read-only isolated seven-key restore/load/rollback rehearsal against any active project, saved checkpoint or named project; export a simulated result, not an authorized backup. CI gates high-severity production npm audit results, while reporting full dev/build advisories separately without falsely claiming them fixed.
@@ -237,3 +238,7 @@ A passing health check is **not proof of durability, device connectivity, constr
 ## R23: Real Chromium regression gate
 
 R23 adds a blocking production-preview Playwright browser suite covering wall drawing + autosave reload + SVG export, R17 Project Library isolation/safety snapshots, R19 checkpoint restore and R22 private diagnostics export. Run `npm run build`, `npx playwright install chromium`, then `npm run test:e2e` under Node 22+ and npm 11.6.2. See [R23 E2E contract](docs/OPENBLUE_R23.md).
+
+## R24: Keyboard Wall Entry & Compact Mobile Layout
+
+Use the **Keyboard wall entry** disclosure under the 2D canvas to create a wall by entering start/end X/Y coordinates, snapped to the current grid. Tab through the inputs and press Enter to add a normal wall; use Undo as usual. A first-Tab skip link jumps to workspace navigation, and focus indicators stay visible. On narrow 360–390px browsers, OpenBlue retains horizontally scrollable drawing tools and two-column actions while preventing page-wide overflow. Chromium tests verify mobile checkpoint usage and keyboard wall creation. See [R24 accessibility test contract](docs/OPENBLUE_R24.md).

@@ -577,3 +577,54 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .operator-self-test-help{display:grid;gap:8px;border:1px solid var(--line);padding:10px}
 .operator-self-test-help>strong{font-size:10px;color:#ddf4ff}
 .operator-self-test-help .pathway-actions{display:flex;flex-wrap:wrap;gap:5px}
+
+/* R24 · keyboard-operable CAD entry, visible focus and compact mobile tool layout. */
+.skip-link{position:fixed;top:8px;left:8px;z-index:9999;transform:translateY(-160%);
+ background:#102b42;color:#fff;border:2px solid var(--amber);padding:12px 16px;font-size:13px;
+ font-weight:700;text-decoration:none}
+.skip-link:focus,.skip-link:focus-visible{transform:translateY(0)}
+:where(button,input,select,textarea,summary,a,[role="application"]):focus-visible{
+ outline:3px solid #f7b84b;outline-offset:3px
+}
+.project-title-wrap input:focus-visible{outline:3px solid #f7b84b;outline-offset:3px}
+.workspace-nav:focus-visible{outline:3px solid #f7b84b;outline-offset:-2px}
+.editor-column{grid-template-rows:52px minmax(0,1fr) auto}
+.keyboard-wall-entry{min-width:0;border-top:1px solid var(--line);background:#081827;color:#d3ecf8}
+.keyboard-wall-entry summary{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;
+ cursor:pointer;padding:9px 14px;font-size:11px;font-weight:700;min-height:38px}
+.keyboard-wall-entry summary::before{content:'▸';color:var(--amber);margin-right:4px}
+.keyboard-wall-entry[open] summary::before{content:'▾'}
+.keyboard-wall-entry summary span{font-size:10px;color:#9bbacd;font-weight:400}
+.keyboard-wall-entry form{display:grid;gap:9px;padding:8px 14px 13px}
+.keyboard-wall-entry form p{font-size:10px;line-height:1.55;color:#a8c6d8;margin:0}
+.keyboard-wall-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.keyboard-wall-fields label{min-width:0;display:grid;gap:5px;font-size:10px;color:#b1cede}
+.keyboard-wall-fields input{width:100%;min-width:0;background:#061420;color:#ecfaff;
+ border:1px solid rgba(116,204,240,.4);padding:9px}
+.keyboard-wall-entry form button{justify-self:start;min-height:36px}
+.keyboard-wall-entry .keyboard-wall-status{font-weight:600;min-height:1em;color:#e6bf7c}
+@media(max-width:680px){
+ .app-shell,.workspace,.topbar,.preview-column,.editor-column{min-width:0;max-width:100%}
+ .topbar{gap:9px;padding:11px}
+ .top-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-width:0}
+ .top-actions button{min-width:0;min-height:42px;padding:8px 5px;font-size:11px}
+ .project-title-wrap{min-width:0;grid-template-columns:auto minmax(0,1fr)}
+ .toolrail{max-width:100vw;scrollbar-width:thin;overscroll-behavior-inline:contain}
+ .toolrail .tool-button{min-width:64px;min-height:50px}
+ .editor-column{height:550px}
+ .preview-column{min-width:0}
+ .inspector{min-width:0;padding:12px}
+ .panel-heading{padding-inline:10px}
+ .canvas-viewport-controls{right:6px;top:7px;gap:2px;padding:3px}
+ .canvas-viewport-controls button{min-width:32px;min-height:36px;padding:5px}
+ .keyboard-wall-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .keyboard-wall-entry summary{padding-inline:10px}
+ .keyboard-wall-entry form{padding-inline:10px}
+ .workspace-nav button{flex-basis:102px;min-height:48px}
+ .field-grid,.project-settings{min-width:0}
+ .workspace-audit-docs{grid-template-columns:1fr}
+ .statusbar>div:first-child{white-space:normal;overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){
+ .skip-link{transition:none}
+}

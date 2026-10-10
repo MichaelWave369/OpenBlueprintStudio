@@ -129,3 +129,62 @@ test('Operator Self-Test runs in the actual browser and exports no site-identify
  expect(JSON.stringify(report)).not.toContain(secret);
  expect(JSON.stringify(report)).not.toContain('wall-north');
 });
+
+test('R24: keyboard skip link, exact-coordinate wall entry and undo work without pointer input',async({page})=>{
+ await expect(page.locator('.skip-link')).toBeAttached();
+ await page.keyboard.press('Tab');
+ await expect(page.locator('.skip-link')).toBeFocused();
+ await page.keyboard.press('Enter');
+ await expect(page.getByRole('navigation',{name:'OpenBlue workspaces'})).toBeFocused();
+ const disclosure=page.locator('.keyboard-wall-entry');
+ await disclosure.locator('summary').focus();
+ await page.keyboard.press('Enter');
+ await expect(disclosure).toHaveAttribute('open','');
+ const before=(await getStored(page,PROJECT_KEY))?.walls?.length??8;
+ for(const [name,value] of [['x1','2'],['y1','2'],['x2','9'],['y2','2']]){
+  const field=disclosure.locator('input[name="'+name+'"]');
+  await field.focus();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.type(value);
+ }
+ await disclosure.getByRole('button',{name:'Add wall from coordinates'}).focus();
+ await page.keyboard.press('Enter');
+ await expect(disclosure.getByRole('status')).toContainText('Wall added');
+ await expect(page.locator('.status-stats')).toContainText((before+1)+' walls');
+ await expect.poll(async()=>((await getStored(page,PROJECT_KEY))?.walls?.length),{timeout:9000}).toBe(before+1);
+ await page.locator('.toolrail button[title^="Undo"]').focus();
+ await page.keyboard.press('Enter');
+ await expect(page.locator('.status-stats')).toContainText(before+' walls');
+});
+
+test('R24: narrow mobile layout keeps navigation and checkpoint controls usable',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.reload();
+ await expect(page.locator('.top-actions').getByRole('button',{name:'Export SVG'})).toBeVisible();
+ const width=await page.evaluate(()=>({screen:window.innerWidth,content:document.documentElement.scrollWidth}));
+ expect(width.content).toBeLessThanOrEqual(width.screen+2);
+ await expect(page.locator('.toolrail')).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'OpenBlue workspaces'})).toBeAttached();
+ await tab(page,'Design').click();
+ await expect(tab(page,'Design')).toHaveAttribute('aria-current','page');
+ await tab(page,'Overview').click();
+ const section=page.locator('#openblue-project-timeline');
+ await section.locator('.vault-create input').fill('Mobile checkpoint');
+ await section.getByRole('button',{name:'Save current complete workspace checkpoint'}).click();
+ await expect(section.locator('.timeline-checkpoint').filter({hasText:'Mobile checkpoint'})).toBeVisible();
+ const timeline=await getStored(page,TIMELINE_KEY);
+ expect(timeline.checkpoints).toHaveLength(1);
+ expect(timeline.checkpoints[0].label).toBe('Mobile checkpoint');
+});
+
+test('R24: 360px viewport exposes project controls and keyboard wall form',async({page})=>{
+ await page.setViewportSize({width:360,height:740});
+ await page.reload();
+ const width=await page.evaluate(()=>({screen:window.innerWidth,content:document.documentElement.scrollWidth}));
+ expect(width.content).toBeLessThanOrEqual(width.screen+2);
+ await expect(page.locator('#project-title')).toBeVisible();
+ await expect(page.locator('.keyboard-wall-entry summary')).toBeVisible();
+ await page.locator('.keyboard-wall-entry summary').click();
+ await expect(page.getByRole('button',{name:'Add wall from coordinates'})).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'OpenBlue workspaces'})).toBeAttached();
+});
