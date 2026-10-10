@@ -48,10 +48,7 @@ export default function TopologyDiagramPanel({graph,onExport,onEvidenceTarget}){
   },[graph,filter,focusId]);
   const visualEdges=graph.edges.filter(e=>viewed.positions.has(e.from)&&viewed.positions.has(e.to));
   const issues=expandedIssues?graph.issues:graph.issues.slice(0,8);
-  const focus=n=>{
-    setFocusId(current=>current===n.id?null:n.id);
-    onEvidenceTarget?.(n.id);
-  };
+  const focus=n=>setFocusId(current=>current===n.id?null:n.id);
   return <section className="topology-visualizer" aria-label="Offline proposed network topology visualizer">
     <div className="room-panel-heading">
       <div><span className="eyebrow">R12 · OFFLINE RECONCILIATION</span><h3>Network Topology Map</h3></div>

@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R16 focused workspace navigation:** five inspector workspaces (Overview, Design, Network, Field, Handoff) replace a giant all-tools stack. An overview summarizes the one current local project and its governed sidecars. Session-only handoff browser indexes up to 12 validated or rejected JSON summaries with no raw file retention, import, or automatic approval.
 - **R15 portable field handoff packages:** consent-gated, nine-section offline JSON export for CAD, room annotations, pathway plans, racks, proposed topology, field evidence and R8/R12/R14 review snapshots. SHA-256 per-section/manifest integrity; import inspects without mutating local data. No signatures, external attachments, automatic approval or background network requests.
 - **R14 field inspection checklist and review gate:** derive mandatory rack/switch/panel/drop/link/port-allocation checks from the R12 graph and R13 receipt ledger. Human-reviewed reported-PASS coverage, fail-closed design/scope blockers, latest-report precedence, and review-only JSON snapshot. A completion candidate is never installer authorization or independent physical verification.
 - **R13 field evidence ledger:** record referenced, human-reported field observations on specific R12 nodes or edges; append human review receipts by a second person; automatically mark evidence stale when design fingerprints change. Separate local append-only receipt chain, schema-checked import/export; no automatic verification, signatures or real network tests.
@@ -154,3 +155,13 @@ Each section has an independent **SHA-256** digest and byte count; a manifest di
 **Import is PREVIEW ONLY:** the inspector validates nested formats and hash matches, shows inventory/report counts, embedded readiness state, and known missing blueprint network references. It does not change project geometry, localStorage sidecars, EVIE proposals, route drawings, approvals, or ledger events. R8/R12/R14 derived snapshots are retained as authored, not independently recomputed or certified on import. No network calls or automatic device probes.
 
 Packages are bounded to 7MB, with 2.5MB per section. Export requires explicit privacy acknowledgment and browser confirmation because technician/reviewer names, project layouts and evidence references may be sensitive. Uses browser WebCrypto SHA-256 with secure context required. See [R15 data and handoff contract](docs/OPENBLUE_R15.md).
+
+## R16: Workspace & Session Handoff Browser
+
+R16 organizes the right-side OpenBlue inspector into five focused areas: **Overview** (active project summary and direct links), **Design** (selected geometry, room notes and project settings), **Network** (R8–R12 paths, racks, logical topology and the interactive diagram), **Field** (R13 evidence reports and R14 documentation gate), and **Handoff** (R15 export plus a session handoff browser). The left-side blueprint and 3D preview stay present while navigating workspaces.
+
+The overview summarizes **only the current active browser-saved blueprint and its loaded sidecars**. It is not a multi-project database, doesn't silently back up or switch project slots, and doesn't change existing CAD/EVIE/storage formats. Use manual JSON import/export for active blueprint changes.
+
+The **Handoff Browser** allows a user to select up to twelve local handoff JSON files at a time; each is validated using the existing R15 nine-part SHA-256 inspector. A bounded, **in-memory-only** shelf holds filename, inspected timestamp, validation outcome and safe derived summary. It does not retain source JSON bytes, embedded project contents, attached files or cloud state, and disappears on reload. Duplicate successful manifest digests are collapsed. Failed files appear with a clear reason. The user can inspect, remove or clear entries; none of these actions applies any imported sections to the active project. File contents remain where the user saved them.
+
+Integrity checks are consistency checks against an **unsigned** manifest, never proof of identity, origin, measured connectivity or approval. See [R16 navigation and browser contract](docs/OPENBLUE_R16.md).
