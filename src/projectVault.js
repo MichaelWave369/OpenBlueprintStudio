@@ -48,7 +48,7 @@ const exact=(item,keys,label)=>{
 };
 const cleanPrefs=prefs=>{
  exact(prefs,['analysisMode','networkHubId'],'workspace preferences');
- if(!['connected','simple'].includes(prefs.analysisMode))
+ if(!['connected','strict'].includes(prefs.analysisMode))
   throw Error('Unknown room analysis mode.');
  if(typeof prefs.networkHubId!=='string'||prefs.networkHubId.length>120||
   /[\u0000-\u001f\u007f]/.test(prefs.networkHubId))
