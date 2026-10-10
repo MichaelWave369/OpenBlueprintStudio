@@ -9,6 +9,10 @@ import LogicalTopologyPanel from './LogicalTopologyPanel.jsx';
 import TopologyDiagramPanel from './TopologyDiagramPanel.jsx';
 import FieldEvidencePanel from './FieldEvidencePanel.jsx';
 import FieldReadinessPanel from './FieldReadinessPanel.jsx';
+import FieldHandoffPanel from './FieldHandoffPanel.jsx';
+import {
+  createFieldHandoff,inspectFieldHandoff,serializeFieldHandoff,MAX_HANDOFF_BYTES,
+} from './fieldHandoff.js';
 import {assessFieldReadiness,fieldReadinessSnapshot} from './fieldReadiness.js';
 import {
   emptyEvidenceLedger,loadEvidenceLedger,saveEvidenceLedger,
@@ -114,6 +118,8 @@ export default function App() {
   const [logicalTopology,setLogicalTopology] = useState(()=>loadTopology().doc);
   const [evidenceLedger,setEvidenceLedger]=useState(()=>loadEvidenceLedger().doc);
   const [evidenceTargetId,setEvidenceTargetId]=useState('');
+  const [handoffPreview,setHandoffPreview]=useState(null);
+  const handoffImportRef=useRef(null);
   const evidenceImportRef=useRef(null);
   const topologyImportRef=useRef(null);
   const rackImportRef=useRef(null);
@@ -344,6 +350,7 @@ export default function App() {
     }catch(error){setNotice('Pathway import rejected: '+error.message);}
   };
   const replaceRoomNotesForNewPlan = () => {
+    setHandoffPreview(null);
     setEvidenceLedger(emptyEvidenceLedger());
     setEvidenceTargetId('');
     setLogicalTopology(emptyTopology());
@@ -481,6 +488,34 @@ export default function App() {
       setNotice('Human review receipt appended. Acceptance is of the REPORT RECORD only, not certified network connectivity.');
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
+  };
+  const exportHandoffBundle=async()=>{
+    if(!window.confirm('Export a portable local package including technician/reviewer names, external field evidence references, design plans and review summaries? This does not certify any reported results.'))return;
+    try{
+      const pkg=await createFieldHandoff({
+        project,roomAnnotations,pathways,rackPlan,logicalTopology,
+        fieldEvidence:evidenceLedger,
+        networkReview:networkReviewSnapshot(project,networkReport),
+        topologyReview:diagramReview,readinessReview,
+      });
+      const json=serializeFieldHandoff(pkg);
+      const reviewed=await inspectFieldHandoff(json);
+      downloadText(safeFilename(project.metadata.title,'openblue-field-handoff.json'),
+        json,'application/json');
+      setHandoffPreview(reviewed);
+      setNotice('9-part offline handoff exported. Integrity checked, but report authorship, device state and physical installation are NOT verified.');
+    }catch(error){setNotice('Handoff export rejected: '+error.message);}
+  };
+  const inspectHandoffFile=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    setHandoffPreview(null);
+    try{
+      if(file.size>MAX_HANDOFF_BYTES)throw Error('Handoff exceeds 7 MB.');
+      const result=await inspectFieldHandoff(await file.text());
+      setHandoffPreview(result);
+      setNotice('Handoff preview only: nine section hashes checked. Current CAD, sidecars, and evidence remain UNCHANGED.');
+    }catch(error){setNotice('Handoff inspection rejected: '+error.message);}
   };
   const exportFieldReadiness=()=>{
     try{
@@ -870,6 +905,14 @@ export default function App() {
             />
             <input ref={evidenceImportRef} type="file" hidden accept="application/json,.json"
               onChange={importEvidence} />
+
+            <FieldHandoffPanel
+              preview={handoffPreview} onExport={exportHandoffBundle}
+              onInspect={()=>handoffImportRef.current?.click()}
+              onClear={()=>setHandoffPreview(null)}
+            />
+            <input ref={handoffImportRef} type="file" hidden accept="application/json,.json"
+              onChange={inspectHandoffFile} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

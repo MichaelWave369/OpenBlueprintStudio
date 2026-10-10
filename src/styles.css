@@ -394,3 +394,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .readiness-item button{justify-self:start}
 @media(max-width:400px){.readiness-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .readiness-filter-row{grid-template-columns:1fr}}
+
+/* R15 one-file local evidence handoff with inspect-only imports. */
+.field-handoff-panel{display:grid;gap:11px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.field-handoff-panel .room-panel-heading h3{margin:3px 0 0;font-size:12px}
+.field-handoff-parts{display:grid;gap:5px}
+.field-handoff-parts>div{border:1px solid var(--line);display:grid;gap:3px;padding:7px;min-width:0}
+.field-handoff-parts span{color:#d8effb;font-size:10px}
+.field-handoff-parts code{color:var(--muted);font:9px Consolas,monospace;overflow-wrap:anywhere}
+.field-handoff-consent{display:flex;gap:10px;align-items:flex-start;padding:9px;border:1px solid rgba(247,184,75,.3);color:#c5dbea;font-size:10px;line-height:1.6}
+.field-handoff-consent input{margin-top:3px;flex:none;accent-color:#f7b84b}
+.field-handoff-preview{display:grid;gap:9px;border:1px solid rgba(87,215,255,.35);background:rgba(87,215,255,.045);padding:11px;color:#bbd8e7;font-size:10px;overflow-wrap:anywhere}
+.field-handoff-preview>.rack-row-title strong{color:#e9f8ff;font-size:11px}
+.field-handoff-preview .readiness-stat-grid{margin:3px 0}
+.field-handoff-status{color:#f7b84b;font:700 10px Consolas,monospace;overflow-wrap:anywhere}
+.field-handoff-preview>p{margin:0;color:var(--muted);font-size:10px;line-height:1.6}
+.field-handoff-preview>button{justify-self:start}
+.field-handoff-empty{border:1px dashed var(--line);padding:10px;font-size:10px;color:var(--muted);line-height:1.6}
+.field-handoff-checks{display:grid;gap:5px}
+.field-handoff-checks>div{display:flex;flex-wrap:wrap;gap:7px;align-items:center;border:1px solid var(--line);padding:7px}
+.field-handoff-checks span{flex:1 1 145px;color:#ddeff7}
+.field-handoff-checks code{color:#a7f3d0;font:10px Consolas,monospace}
+.field-handoff-checks small{font-size:10px;color:var(--muted)}
