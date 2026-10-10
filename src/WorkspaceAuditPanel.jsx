@@ -1,7 +1,7 @@
 /** R18 read-only recovery preflight, never a repair tool or field approval. */
 export default function WorkspaceAuditPanel({report,scope,onCheckActive,onCheckSlot,onExport,onDownloadRaw,slots,unreadableVault}){
  const counts=report?.counts;
- return <section className="workspace-audit-panel" aria-label="Workspace integrity and recovery review">
+ return <section id="openblue-workspace-audit" className="workspace-audit-panel" aria-label="Workspace integrity and recovery review">
    <div className="room-panel-heading">
      <div><span className="eyebrow">R18 · RESTORE PREFLIGHT</span><h3>Project Recovery & Integrity</h3></div>
      <span className="room-state">READ ONLY</span>
