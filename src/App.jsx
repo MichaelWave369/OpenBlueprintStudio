@@ -459,7 +459,7 @@ export default function App() {
               className={activeTool === tool.id ? 'tool-button active' : 'tool-button'}
               aria-pressed={activeTool === tool.id}
               title={`${tool.label} (${tool.key})`}
-              onClick={() => setActiveTool(tool.id)}
+              onClick={() => { if (routeDraft && tool.id !== 'pathway') setRouteDraft(null); setActiveTool(tool.id); }}
             >
               <span className="tool-icon">{tool.icon}</span>
               <span>{tool.label}</span>

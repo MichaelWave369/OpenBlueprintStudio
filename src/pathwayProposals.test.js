@@ -10,7 +10,7 @@ const setup=()=>{
  p.symbols=[
  {id:'hub',type:'network',x:5,y:5,rotation:0},
  {id:'drop',type:'network',x:8,y:9,rotation:0},
- {id:'remote',type:'network',x:20,y:19,rotation:0},
+ {id:'remote',type:'network',x:20,y:10,rotation:0},
  ];
  return p;
 };

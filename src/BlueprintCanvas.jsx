@@ -101,7 +101,7 @@ export default function BlueprintCanvas({
   useEffect(() => {
     const cancel = (event) => {
       if (event.key === 'Escape') {
-        onCancelRouteDraft?.();
+        if (activeTool === 'pathway' && routeDraft) onCancelRouteDraft?.();
         setDraftStart(null);
         setDraggingSymbol(null);
         setMeasureStart(null);
@@ -112,7 +112,7 @@ export default function BlueprintCanvas({
     };
     window.addEventListener('keydown', cancel);
     return () => window.removeEventListener('keydown', cancel);
-  }, [onCancelRouteDraft]);
+  }, [onCancelRouteDraft, activeTool, routeDraft]);
 
   const displayedWalls = useMemo(() => project.walls.map((wall) => {
     if (draggingEndpoint?.id !== wall.id) return wall;
