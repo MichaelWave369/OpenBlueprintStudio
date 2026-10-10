@@ -33,6 +33,7 @@ export default function BlueprintCanvas({
   roomAnalysis,
   showRooms,
   roomAnnotations,
+  networkGuide,
   selectedRoomKey,
   onSelectRoom,
   onSelect,
@@ -292,6 +293,16 @@ export default function BlueprintCanvas({
           })}
         </g>
 
+        {networkGuide && networkGuide.hubId && (
+          <g className="network-guide-layer" pointerEvents="none" aria-hidden="true">
+            {networkGuide.drops.filter(drop=>!drop.isHub).map(drop=>{
+              const hub=networkGuide.drops.find(item=>item.isHub);
+              if(!hub)return null;
+              const a=toScreen(hub),b=toScreen(drop);
+              return <line key={drop.id} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+            })}
+          </g>
+        )}
         <g aria-label="Schematic symbols">
           {project.symbols.map((symbol) => {
             const point = toScreen(symbol);

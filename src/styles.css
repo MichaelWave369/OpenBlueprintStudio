@@ -203,3 +203,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .room-annotation-actions span { flex:1; }
 .room-unmatched { margin-top:10px; padding:9px; border:1px solid rgba(247,184,75,.25); }
 .room-unmatched p { color:#dfb97b; margin:0 0 7px; font-size:10px; line-height:1.5; }
+
+/* R8: IT inventory is read-only; dashed SVG guides cannot intercept CAD editing. */
+.network-panel { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); display:grid; gap:10px; }
+.network-panel .room-panel-heading h3 { margin:3px 0 0; font-size:12px; }
+.network-stats { display:flex; flex-wrap:wrap; gap:7px; color:#a0cbd8; font:10px Consolas,monospace; }
+.network-stats span { border:1px solid var(--line); padding:5px 7px; }
+.network-drop-list { display:grid; gap:4px; max-height:195px; overflow-y:auto; }
+.network-drop { width:100%; display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid var(--line); background:#071827; padding:8px; color:#dff7ff; text-align:left; cursor:pointer; }
+.network-drop:hover { border-color:var(--cyan); }
+.network-drop.active { border-color:var(--amber); background:rgba(247,184,75,.1); }
+.network-drop span:first-child { min-width:0; display:grid; gap:4px; overflow-wrap:anywhere; }
+.network-drop strong { font-size:10px; }
+.network-drop small { font-size:9px; color:var(--muted); }
+.network-distance { white-space:nowrap; font:10px Consolas,monospace; color:var(--cyan); }
+.network-rooms { display:grid; gap:5px; margin-top:2px; font-size:10px; }
+.network-rooms>strong { color:var(--muted); }
+.network-rooms>div { display:flex; justify-content:space-between; gap:7px; color:#c2dde9; }
+.network-guide-layer line { stroke:#c4b5fd; stroke-width:2; stroke-dasharray:5 7; opacity:.65; }
