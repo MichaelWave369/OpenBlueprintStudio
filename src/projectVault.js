@@ -111,7 +111,9 @@ export function deleteProjectSlot(vault,id){
  return parseProjectVault(JSON.stringify({...vault,slots:vault.slots.filter(s=>s.id!==id)}));
 }
 export function exportWorkspaceSlot(slot){
- return JSON.stringify({schemaVersion:BACKUP_SCHEMA,slot:cleanSlot(slot)},null,2);
+ // Compact output avoids making an otherwise valid near-limit snapshot
+ // too large to re-import solely because of pretty-print whitespace.
+ return JSON.stringify({schemaVersion:BACKUP_SCHEMA,slot:cleanSlot(slot)});
 }
 export function parseWorkspaceBackup(raw){
  if(typeof raw!=='string'||sizeOf(raw)>MAX_SNAPSHOT_BYTES+5000)

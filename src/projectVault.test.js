@@ -36,6 +36,25 @@ describe('R17 isolated local project vault',()=>{
   expect(parsed.slots[1].workspace.preferences.networkHubId).toBe('drop-A');
   expect(parsed.slots[0].workspace.fieldEvidence.events).toEqual([]);
  });
+ it('keeps a site-specific nonempty human report attached only to its own saved project',()=>{
+  const a=snapshot('A'),b=snapshot('B');
+  const graph={nodes:[{id:'drop:["drop-A"]',title:'drop-A',type:'drop',
+    description:'A site room',state:'assigned'}],edges:[]};
+  a.fieldEvidence=appendEvidenceReport(a.fieldEvidence,graph,{
+    targetId:'drop:["drop-A"]',reporter:'Technician A',
+    method:'visual-inspection',result:'reported-pass',
+    evidenceRef:'Site A notebook',notes:'Site-specific observation only.',
+  },'2026-10-10T04:00:00.000Z');
+  let vault=putProjectSlot(emptyProjectVault(),{
+    id:'a',name:'Building A',workspace:a,
+  });
+  vault=putProjectSlot(vault,{id:'b',name:'Building B',workspace:b});
+  const checked=parseProjectVault(serializeProjectVault(vault));
+  expect(checked.slots.find(s=>s.id==='a').workspace.fieldEvidence.events[0].evidenceRef)
+    .toBe('Site A notebook');
+  expect(checked.slots.find(s=>s.id==='b').workspace.fieldEvidence.events).toHaveLength(0);
+  expect(checked.slots.find(s=>s.id==='b').workspace.project.symbols[0].id).toBe('drop-B');
+ });
  it('updates a single slot by ID and allows removal without mutating others',()=>{
   const a=snapshot('A'),b=snapshot('B');
   let v=putProjectSlot(emptyProjectVault(),{id:'one',name:'Old',workspace:a});
