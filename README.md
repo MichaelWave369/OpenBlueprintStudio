@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R18 recovery and integrity audit:** schema-validate all six documents and reconcile saved room, pathway, rack, topology and human-field-evidence relationships before opening a snapshot. Pure read-only findings and JSON reports; block malformed restores, explicitly acknowledge inconsistent-but-loadable snapshots, and allow verbatim export of an unreadable raw browser vault before reset.
 - **R17 multi-project local vault:** save up to six full, versioned project snapshots including CAD, room annotations, pathways, racks, switches, R13 evidence and room/hub preferences. Explicit save/overwrite/delete, individual JSON backup/import, and confirmed restore with pre-switch safety snapshot, guarded active-storage rollback and reload. Browser storage is not cloud backup.
 - **R16 focused workspace navigation:** five inspector workspaces (Overview, Design, Network, Field, Handoff) replace a giant all-tools stack. An overview summarizes the one current local project and its governed sidecars. Session-only handoff browser indexes up to 12 validated or rejected JSON summaries with no raw file retention, import, or automatic approval.
 - **R15 portable field handoff packages:** consent-gated, nine-section offline JSON export for CAD, room annotations, pathway plans, racks, proposed topology, field evidence and R8/R12/R14 review snapshots. SHA-256 per-section/manifest integrity; import inspects without mutating local data. No signatures, external attachments, automatic approval or background network requests.
@@ -176,3 +177,15 @@ Saving or updating a named snapshot is **explicit**, not an implicit background 
 The vault uses new `openblue.project-vault/1` records under `openblue/project-vault-v1`, with a conservative cap of six snapshots, 1.5 MB each and 3.5 MB total to reduce browser quota problems. Per-slot `openblue.workspace-backup/1` JSON exports provide **off-browser backup**; imports validate all documents and add a new snapshot only, never auto-activate. Browser storage may be cleared, unavailable or reach quota, and vault exports can contain identifying site details and manually entered technician information.
 
 Existing source schemas and EVIE review contracts are unchanged, and project opening does not import R15 unsigned handoff packages or upgrade reported-pass claims to certified results. See [R17 vault and switching contract](docs/OPENBLUE_R17.md).
+
+## R18: Project Recovery & Integrity Audit
+
+The Overview workspace now includes **Project Recovery & Integrity**, a read-only audit for the active design or any R17 saved project snapshot. The audit validates every original source schema (blueprint, room annotations, operator pathways, rack inventory, conceptual logical topology and field evidence), then recreates the relevant room/network/topology/evidence analyses from the saved records. It surfaces orphaned room labels, stale hub IDs, moved/removed pathway endpoints, rack-anchor problems, broken logical references and human evidence receipts tied to stale/missing design objects.
+
+- `STRUCTURALLY_CONSISTENT`: all documents parse and no recognized *review-severity* cross-document inconsistencies were found. Informational warnings and `HOLD_FOR_DOCUMENTATION` may still apply. **NOT** proof of physical installation, real device connectivity or safety approval.
+- `RESTORABLE_WITH_FINDINGS`: six documents parse, but there are reference issues requiring a separate explicit acknowledgment before the R17 safety-backup/open workflow. Nothing is auto-repaired or silently rebound.
+- `RESTORE_BLOCKED`: document validation or full reconciliation failed. An invalid snapshot cannot be opened from this flow. Retain the original backup and investigate.
+- Derived audit export `openblue.workspace-audit/1` is review-only and introduces **no new persistent source schema**.
+- If the R17 vault itself cannot be parsed, **Download original unreadable vault** allows verbatim operator-owned preservation before the preexisting explicit reset action; it does not fix or trust the damaged data.
+
+On Open, the R18 preflight runs automatically *before* R17 takes its independent pre-switch snapshot and performs its guarded local-storage restoration. A valid-but-inconsistent snapshot requires additional user confirmation; corrupted schemas are blocked. See [R18 restore preflight contract](docs/OPENBLUE_R18.md).

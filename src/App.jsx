@@ -12,6 +12,8 @@ import FieldReadinessPanel from './FieldReadinessPanel.jsx';
 import FieldHandoffPanel from './FieldHandoffPanel.jsx';
 import WorkspaceHome,{WorkspaceNavigator} from './WorkspaceHome.jsx';
 import ProjectVaultPanel from './ProjectVaultPanel.jsx';
+import WorkspaceAuditPanel from './WorkspaceAuditPanel.jsx';
+import {auditWorkspace,exportWorkspaceAudit} from './workspaceAudit.js';
 import {
   VAULT_KEY,MAX_SNAPSHOT_BYTES,emptyProjectVault,loadProjectVault,saveProjectVault,
   putProjectSlot,deleteProjectSlot,createWorkspaceSnapshot,
@@ -118,6 +120,8 @@ export default function App() {
   const initialVault=useMemo(()=>loadProjectVault(),[]);
   const [projectVault,setProjectVault]=useState(initialVault.doc);
   const [projectVaultError,setProjectVaultError]=useState(initialVault.error);
+  const [workspaceAudit,setWorkspaceAudit]=useState(null);
+  const [workspaceAuditScope,setWorkspaceAuditScope]=useState('');
   const vaultImportRef=useRef(null);
   const switchingRef=useRef(false);
   const [history, setHistory] = useState({ past: [], present: start.project, future: [] });
@@ -527,10 +531,42 @@ export default function App() {
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
   };
-  const currentVaultDocuments=()=>createWorkspaceSnapshot({
+  const currentVaultRaw=()=>({
     project,roomAnnotations,pathways,rackPlan,logicalTopology,fieldEvidence:evidenceLedger,
     preferences:{analysisMode,networkHubId},
   });
+  const currentVaultDocuments=()=>createWorkspaceSnapshot(currentVaultRaw());
+  const runActiveWorkspaceAudit=()=>{
+    const audit=auditWorkspace(currentVaultRaw(),{source:'active',name:project.metadata.title});
+    setWorkspaceAudit(audit);setWorkspaceAuditScope('Active project');
+    setNotice(audit.status==='RESTORE_BLOCKED'?'Active project audit failed. Export current JSON backups.':
+      'Active project audited. Findings are internal consistency checks, not field verification.');
+  };
+  const runSavedWorkspaceAudit=id=>{
+    const slot=projectVault.slots.find(s=>s.id===id);
+    if(!slot)return;
+    const audit=auditWorkspace(slot.workspace,{source:'saved-slot',name:slot.name});
+    setWorkspaceAudit(audit);setWorkspaceAuditScope('Saved snapshot');
+    setNotice(audit.status==='RESTORE_BLOCKED'?'Saved workspace fails preflight and must not be opened.':
+      'Saved workspace audited without changing the active project.');
+  };
+  const exportAuditReport=()=>{
+    if(!workspaceAudit)return;
+    try{
+      downloadText(safeFilename(workspaceAudit.name,'workspace-audit.json'),
+        exportWorkspaceAudit(workspaceAudit),'application/json');
+      setNotice('Read-only integrity audit exported. This is not a field certificate or authenticated receipt.');
+    }catch(error){setNotice('Audit export failed: '+error.message);}
+  };
+  const backupUnreadableVault=()=>{
+    try{
+      const raw=localStorage.getItem(VAULT_KEY);
+      if(!raw)throw Error('There is no original stored vault to preserve.');
+      if(!window.confirm('Download the original, possibly corrupt project vault bytes? The file can contain sensitive site geometry and technician evidence. Do not treat it as a valid backup.'))return;
+      downloadText('openblue-unreadable-vault-original.json',raw,'application/json');
+      setNotice('Original unreadable vault exported verbatim without changing the local storage value.');
+    }catch(error){setNotice('Could not preserve unreadable vault: '+error.message);}
+  };
   const saveActiveVaultSlot=(name)=>{
     try{
       if(projectVaultError)throw Error('The vault is unreadable. Reset it explicitly before saving.');
@@ -556,6 +592,14 @@ export default function App() {
   const openVaultSlot=id=>{
     const slot=projectVault.slots.find(s=>s.id===id);
     if(!slot||projectVaultError)return;
+    const audit=auditWorkspace(slot.workspace,{source:'saved-slot',name:slot.name});
+    setWorkspaceAudit(audit);setWorkspaceAuditScope('Saved snapshot');
+    if(!audit.canRestore){
+      setNotice('Open blocked by R18 integrity preflight. Inspect findings and restore from a valid external backup.');
+      return;
+    }
+    if(audit.status==='RESTORABLE_WITH_FINDINGS' &&
+      !window.confirm(`R18 found ${audit.counts.reviewFindings} reference-consistency finding(s) in "${slot.name}". Opening will NOT repair these or certify evidence. Continue to the normal safety-backup confirmation?`))return;
     if(evieProposal){setNotice('Reject or approve the staged EVIE proposal before switching projects.');return;}
     if(routeDraft){setNotice('Save or cancel the unfinished operator pathway sketch before switching projects.');return;}
     if(projectVault.slots.length>=6){
@@ -1042,6 +1086,15 @@ export default function App() {
               />
               <input ref={vaultImportRef} type="file" accept="application/json,.json" hidden
                 onChange={importVaultBackup} />
+              <WorkspaceAuditPanel
+                report={workspaceAudit} scope={workspaceAuditScope}
+                slots={projectVaultError?[]:projectVault.slots}
+                unreadableVault={Boolean(projectVaultError)}
+                onCheckActive={runActiveWorkspaceAudit}
+                onCheckSlot={runSavedWorkspaceAudit}
+                onExport={exportAuditReport}
+                onDownloadRaw={backupUnreadableVault}
+              />
             </>}
             {activeWorkspace==='design'&&<>
             <RoomAnalysisPanel
