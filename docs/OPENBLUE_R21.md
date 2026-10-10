@@ -14,7 +14,7 @@ Npm counts some direct and transitive advisories separately; package names above
 - Use npm's resolver on an isolated GitHub runner to regenerate, never fabricate integrity strings or patch dependencies by hand.
 - Transitive nanoid becomes 3.3.20 and source-map-js 1.2.2. No application runtime, React, Three, Vite or plugin-react direct version bump.
 - An isolated lockfile candidate workflow generated the new lock with **npm 11.6.2** because GitHub's stock npm 10.9.9 failed in `npm install` with `Cannot read properties of null (reading 'edgesOut')`. The temporary generator workflow is deliberately REMOVED from the final PR tree.
-- Confirm the committed lockfile independently in existing **Node 22 / npm 10** CI with `npm ci`, `npm test`, and `npm run build`.
+- The committed npm 11-generated lockfile is not compatible with stock npm 10.9.9: npm 10 `npm ci` requires optional `@emnapi/core` and `@emnapi/runtime` entries that npm 11 does not emit, and npm 10's attempts to recalculate the lockfile abort in Arborist (`null.edgesOut`), even when regenerating from scratch. **CI and Pages both pin npm 11.6.2** before `npm ci`. Local development should use Node 22+ and npm 11.6.2; npm 10 is not supported for this lockfile. This is a toolchain constraint, not a claim that npm 10 is insecure.
 
 ## Blocking CI policy
 - Keep the existing production high-severity check.
@@ -25,7 +25,7 @@ Npm counts some direct and transitive advisories separately; package names above
 A zero-vulnerability npm audit is a snapshot against advisories currently indexed by the npm registry. It does not prove that packages contain no undiscovered defects, that a build environment or its CI account cannot be compromised, or that user-generated CAD/evidence inputs are trusted. Audit updates and pin review must continue regularly.
 
 ## Acceptance
-1. Runner-generated lockfile and manifest agree; npm ci under the repository's normal Node 22 environment succeeds.
+1. Runner-generated lockfile and manifest agree; `npm ci` succeeds under Node 22+ and the explicitly pinned npm 11.6.2, in both PR CI and Pages build.
 2. All existing project tests, browser-engine build and new R21 regression tests pass.
 3. Production audit finds 0 vulnerabilities.
 4. Full audit (including build/test dependencies) finds 0 vulnerabilities and blocks new findings.
