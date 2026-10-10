@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R13 field evidence ledger:** record referenced, human-reported field observations on specific R12 nodes or edges; append human review receipts by a second person; automatically mark evidence stale when design fingerprints change. Separate local append-only receipt chain, schema-checked import/export; no automatic verification, signatures or real network tests.
 - **R12 offline topology visualizer:** deterministic read-only SVG diagram of existing R8/R10/R11 proposals with clickable rack, switch, panel and drop nodes; separate rack membership, proposed logical links and panel/drop allocations. Local consistency ledger flags stale equipment, missing references, untraced pathways and unassigned room drops. No ping, SNMP, device execution or live diagnostics.
 - **R11 governed logical topology:** create speculative switches in R10 rack slots, assign planned interface types per logical port, and propose unique switch-to-panel or switch-to-switch connections. Detect stale rack, U-slot conflicts, missing patch panels, incompatible interfaces and unallocated panel ports. Stored under an independent local sidecar; no live device discovery or operational link claims.
 - **R10 conceptual rack and patch panel planning:** create virtual racks anchored to schematic network hubs, reserve 1U panel slots, allocate unique logical patch-panel ports to network symbols, and cross-check R9 pathway review status. Locally saved under its own versioned rack-plan sidecar. No actual link, switch, device, or installed-jack claims.
@@ -121,3 +122,13 @@ The **Network Topology Map** joins currently loaded R8 network drops, R10 rack /
 The static findings ledger looks for missing referenced objects, stale rack anchors, switch U-slot conflicts, panel mapping inconsistencies, network drops without confidently detected rooms, and R9 paths that were not traced. **These are local consistency diagnostics, not network health tests.** A zero-warning graph proves neither cable continuity nor a working link. The diagram caps rendering at 28 nodes per category to protect browser performance, but the findings and JSON snapshot cover the complete in-memory proposal dataset.
 
 Export **`openblue.topology-review/1` JSON** for a read-only review receipt. This is a derived snapshot, not a new editable sidecar. It never writes to or imports from CAD, EVIE or R7-R11 records; no network calls or device probes occur. See [R12 verification contract](docs/OPENBLUE_R12.md).
+
+## R13: Field Evidence Ledger
+
+The **Field Evidence Ledger** accepts an **operator-reported** observation against a specific current R12 node or edge. The operator must provide a name, method, claimed outcome (reported pass/fail/inconclusive), external evidence pointer (e.g. photo filename, field-test report ID, notebook reference), and optional notes. This does **not** upload a report, perform a network test, or establish an independent fact.
+
+Every submission appends a receipt with sequence number, UTC timestamp, design-target fingerprint and prior receipt checksum. Another named reviewer, different from the reporter, can explicitly append a decision to accept or reject the **report record**. Reports and earlier review events remain in the ledger; no edit-in-place or silent promotion of a proposed connection to live/verified status. Subsequent changes to the targeted design object flag its prior receipts stale. Removed targets become orphaned. New review of stale evidence is disallowed until fresh evidence is submitted.
+
+The local browser sidecar is `openblue.field-evidence/1` at `openblue/field-evidence-v1`; exports capture the full append-only history, up to 400 events and 500 KB. Imports validate the event chain and require operator confirmation; no targets are silently remapped. The checksum is **noncryptographic** and only catches accidental corruption, NOT deliberate manipulation or proof of authorship, timestamps or physical installation. Back up before replacing/importing a blueprint or approving EVIE: those plan replacement operations reset the active evidence ledger.
+
+All existing CAD, EVIE, room, pathway, rack and logical topology schemas are unchanged. [R13 evidence governance contract](docs/OPENBLUE_R13.md).
