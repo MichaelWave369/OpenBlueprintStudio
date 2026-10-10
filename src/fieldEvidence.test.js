@@ -21,6 +21,7 @@ describe('R13 immutable evidence receipts and human review',()=>{
    const g=graph(),before=JSON.stringify(g),doc=submit(emptyEvidenceLedger(),g);
    expect(doc.events).toHaveLength(1);
    expect(doc.events[0]).toMatchObject({kind:'report',result:'reported-pass',previous:'GENESIS'});
+   expect(doc.headChecksum).toBe(doc.events[0].checksum);
    expect(reviewEvidenceLedger(doc,g).entries[0].state).toBe('awaiting-review');
    expect(JSON.stringify(g)).toBe(before);
  });
@@ -56,6 +57,8 @@ describe('R13 immutable evidence receipts and human review',()=>{
    expect(()=>parseEvidenceLedger(JSON.stringify(modified))).toThrow(/gap or reorder/);
    const missing=JSON.parse(str);missing.events.shift();
    expect(()=>parseEvidenceLedger(JSON.stringify(missing))).toThrow(/gap or reorder/);
+   const truncatedTail=JSON.parse(str);truncatedTail.events.pop();
+   expect(()=>parseEvidenceLedger(JSON.stringify(truncatedTail))).toThrow(/head checksum mismatch/);
    const duplicated=JSON.parse(str);duplicated.events.push(duplicated.events[0]);
    expect(()=>parseEvidenceLedger(JSON.stringify(duplicated))).toThrow(/gap or reorder/);
  });

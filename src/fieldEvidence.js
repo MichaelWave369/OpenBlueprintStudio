@@ -10,7 +10,7 @@ const MAX_BYTES=500000,MAX_EVENTS=400;
 const METHODS=['visual-inspection','cable-test','link-test','other'];
 const RESULTS=['reported-pass','reported-fail','inconclusive'];
 const DECISIONS=['accepted-report','rejected-report'];
-export const emptyEvidenceLedger=()=>({schemaVersion:EVIDENCE_SCHEMA,events:[]});
+export const emptyEvidenceLedger=()=>({schemaVersion:EVIDENCE_SCHEMA,events:[],headChecksum:'GENESIS'});
 const plain=(s,label,max,required=true)=>{
  if(typeof s!=='string'||s.length>max||(required&&!s.trim())||/[\u0000-\u001f\u007f]/.test(s))
    throw Error(label+' must be plain text, maximum '+max+' characters.');
@@ -112,14 +112,16 @@ export function parseEvidenceLedger(raw){
    events.push(clean);
    if(clean.kind==='report')reports.set(clean.id,clean);
  }
- return {schemaVersion:EVIDENCE_SCHEMA,events};
+ const computedHead=events.length?events[events.length-1].checksum:'GENESIS';
+ if(data.headChecksum!==computedHead)throw Error('Ledger head checksum mismatch or truncated tail.');
+ return {schemaVersion:EVIDENCE_SCHEMA,events,headChecksum:computedHead};
 }
 export const serializeEvidenceLedger=doc=>JSON.stringify(parseEvidenceLedger(JSON.stringify(doc)),null,2);
 function append(doc,input){
  const base=normalizedBody({...input,sequence:doc.events.length+1,id:identity(doc.events.length+1)});
  const previous=doc.events.length?doc.events[doc.events.length-1].checksum:'GENESIS';
  const next={...base,previous,checksum:eventChecksum(previous,base)};
- return parseEvidenceLedger(JSON.stringify({schemaVersion:EVIDENCE_SCHEMA,events:[...doc.events,next]}));
+ return parseEvidenceLedger(JSON.stringify({schemaVersion:EVIDENCE_SCHEMA,events:[...doc.events,next],headChecksum:next.checksum}));
 }
 export function appendEvidenceReport(doc,graph,{targetId,reporter,method,result,evidenceRef,notes='' },at=new Date().toISOString()){
  const target=findEvidenceTarget(graph,targetId);

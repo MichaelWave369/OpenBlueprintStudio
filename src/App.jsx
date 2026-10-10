@@ -464,14 +464,16 @@ export default function App() {
   };
   const reportFieldEvidence=payload=>{
     try{
-      setEvidenceLedger(current=>appendEvidenceReport(current,diagramReview,payload));
+      const next=appendEvidenceReport(evidenceLedger,diagramReview,payload);
+      setEvidenceLedger(next);
       setNotice('Operator-reported evidence appended. No claim was independently verified.');
       return true;
     }catch(error){setNotice('Evidence receipt rejected: '+error.message);return false;}
   };
   const reviewFieldEvidence=payload=>{
     try{
-      setEvidenceLedger(current=>appendEvidenceReview(current,diagramReview,payload));
+      const next=appendEvidenceReview(evidenceLedger,diagramReview,payload);
+      setEvidenceLedger(next);
       setNotice('Human review receipt appended. Acceptance is of the REPORT RECORD only, not certified network connectivity.');
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}

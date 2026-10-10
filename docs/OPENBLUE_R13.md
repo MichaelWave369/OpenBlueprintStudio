@@ -5,7 +5,7 @@ Allow real-world inspection results to be *documented* without manufacturing pro
 
 ## Receipt model
 - Independent local-only sidecar `openblue.field-evidence/1`, storage key `openblue/field-evidence-v1`, 500 KB JSON and 400-event limits.
-- **Immutable append-only event array** with explicit sequential IDs `receipt-000001`, UTC ISO timestamps, previous event checksum and deterministic local checksum. No event update/delete API is exposed.
+- **Immutable append-only event array** with explicit sequential IDs `receipt-000001`, UTC ISO timestamps, previous event checksum, deterministic local checksum and document-head checksum (which can catch accidental tail truncation). No event update/delete API is exposed.
 - `report`: target ID referencing an existing **R12 graph node or edge**, snapshot fingerprint, named human reporter, method (visual, cable test, link test, other), outcome (reported-pass, reported-fail, inconclusive), REQUIRED external reference, notes.
 - `review`: previous report receipt ID, a different named human reviewer, decision to accept/reject the **report record**, optional reviewer notes. The latest review is the visible disposition; earlier decisions remain immutable events.
 - An accepted report is shown as `reviewed-claim`. It does NOT mark a topology link installed, certified, connected, tested by OpenBlue, operational, or safe.
