@@ -146,6 +146,7 @@ export async function inspectFieldHandoff(raw){
   const evidenceRefs=sections.fieldEvidence.events.filter(e=>e.kind==='report');
   return {
     schemaVersion:HANDOFF_SCHEMA,createdAt:bundle.createdAt,projectTitle:project.metadata.title,
+    manifestDigest:bundle.manifestSha256,
     parts:partChecks,
     metrics:{
       walls:project.walls.length,symbols:project.symbols.length,

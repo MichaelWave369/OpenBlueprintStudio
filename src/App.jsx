@@ -10,6 +10,9 @@ import TopologyDiagramPanel from './TopologyDiagramPanel.jsx';
 import FieldEvidencePanel from './FieldEvidencePanel.jsx';
 import FieldReadinessPanel from './FieldReadinessPanel.jsx';
 import FieldHandoffPanel from './FieldHandoffPanel.jsx';
+import WorkspaceHome,{WorkspaceNavigator} from './WorkspaceHome.jsx';
+import HandoffShelf from './HandoffShelf.jsx';
+import {workspaceOverview,addSessionHandoff,removeSessionHandoff} from './workspaceModel.js';
 import {
   createFieldHandoff,inspectFieldHandoff,serializeFieldHandoff,MAX_HANDOFF_BYTES,
 } from './fieldHandoff.js';
@@ -106,6 +109,9 @@ export default function App() {
   const start = useMemo(initialProject, []);
   const [history, setHistory] = useState({ past: [], present: start.project, future: [] });
   const [activeTool, setActiveTool] = useState('select');
+  const [activeWorkspace,setActiveWorkspace]=useState('workspace');
+  const [handoffShelf,setHandoffShelf]=useState([]);
+  const [handoffSelectedId,setHandoffSelectedId]=useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [fitRequest, setFitRequest] = useState(0);
   const [threeFitRequest, setThreeFitRequest] = useState(0);
@@ -271,6 +277,10 @@ export default function App() {
     [evidenceLedger,diagramReview]);
   const readinessReview=useMemo(()=>assessFieldReadiness(diagramReview,evidenceReview),
     [diagramReview,evidenceReview]);
+  const workspaceSummary=useMemo(()=>workspaceOverview({
+    project,roomAnalysis:labeledAnalysis,roomAnnotations,pathways,rackPlan,
+    logicalTopology,diagram:diagramReview,readiness:readinessReview,evidence:evidenceLedger,
+  }),[project,labeledAnalysis,roomAnnotations,pathways,rackPlan,logicalTopology,diagramReview,readinessReview,evidenceLedger]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -351,6 +361,7 @@ export default function App() {
   };
   const replaceRoomNotesForNewPlan = () => {
     setHandoffPreview(null);
+    // The R16 inspection shelf remains independent of active plan replacement.
     setEvidenceLedger(emptyEvidenceLedger());
     setEvidenceTargetId('');
     setLogicalTopology(emptyTopology());
@@ -489,6 +500,25 @@ export default function App() {
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
   };
+  const navigateWorkspace=target=>{
+    if(routeDraft && target!=='network'){
+      if(!window.confirm('Discard the unfinished operator pathway sketch and switch workspace? Saved pathways remain intact.'))return;
+      setRouteDraft(null);
+    }
+    setActiveWorkspace(target);
+  };
+  const selectShelfItem=id=>{
+    setHandoffSelectedId(id);
+    setHandoffPreview(handoffShelf.find(item=>item.id===id)?.preview||null);
+  };
+  const removeShelfItem=id=>{
+    setHandoffShelf(current=>removeSessionHandoff(current,id));
+    if(handoffSelectedId===id){setHandoffSelectedId(null);setHandoffPreview(null);}
+  };
+  const clearShelf=()=>{
+    setHandoffShelf([]);setHandoffSelectedId(null);setHandoffPreview(null);
+    setNotice('Temporary handoff inspection summaries cleared. No files or active projects were modified.');
+  };
   const exportHandoffBundle=async()=>{
     if(!window.confirm('Export a portable local package including technician/reviewer names, external field evidence references, design plans and review summaries? This does not certify any reported results.'))return;
     try{
@@ -503,19 +533,37 @@ export default function App() {
       downloadText(safeFilename(project.metadata.title,'openblue-field-handoff.json'),
         json,'application/json');
       setHandoffPreview(reviewed);
+      const id=makeId('package');
+      setHandoffShelf(items=>addSessionHandoff(items,{
+        id,filename:safeFilename(project.metadata.title,'openblue-field-handoff.json'),
+        status:'checked',checkedAt:new Date().toISOString(),preview:reviewed,
+      }));
+      setHandoffSelectedId(id);
       setNotice('9-part offline handoff exported. Integrity checked, but report authorship, device state and physical installation are NOT verified.');
     }catch(error){setNotice('Handoff export rejected: '+error.message);}
   };
   const inspectHandoffFile=async event=>{
-    const file=event.target.files?.[0];event.target.value='';
-    if(!file)return;
-    setHandoffPreview(null);
-    try{
-      if(file.size>MAX_HANDOFF_BYTES)throw Error('Handoff exceeds 7 MB.');
-      const result=await inspectFieldHandoff(await file.text());
-      setHandoffPreview(result);
-      setNotice('Handoff preview only: nine section hashes checked. Current CAD, sidecars, and evidence remain UNCHANGED.');
-    }catch(error){setNotice('Handoff inspection rejected: '+error.message);}
+    const files=Array.from(event.target.files||[]);event.target.value='';
+    if(!files.length)return;
+    let accepted=0,rejected=0,lastPreview=null,lastId=null;
+    for(const file of files.slice(0,12)){
+      const id=makeId('inspected'),checkedAt=new Date().toISOString();
+      try{
+        if(file.size>MAX_HANDOFF_BYTES)throw Error('Handoff exceeds 7 MB.');
+        const preview=await inspectFieldHandoff(await file.text());
+        const item={id,filename:file.name,status:'checked',checkedAt,preview};
+        setHandoffShelf(current=>addSessionHandoff(current,item));
+        accepted++;lastPreview=preview;lastId=id;
+      }catch(error){
+        const item={id,filename:file.name,status:'rejected',checkedAt,
+          error:error instanceof Error?error.message:'Invalid handoff'};
+        setHandoffShelf(current=>addSessionHandoff(current,item));
+        rejected++;
+      }
+    }
+    setHandoffPreview(lastPreview);
+    setHandoffSelectedId(lastId);
+    setNotice(`Inspected ${accepted} valid and ${rejected} rejected local handoff file(s)${files.length>12?' (12-file limit applied)':''}. Active drawing and sidecars remain unchanged.`);
   };
   const exportFieldReadiness=()=>{
     try{
@@ -526,7 +574,8 @@ export default function App() {
   };
   const openReadinessEvidence=id=>{
     setEvidenceTargetId(id);
-    document.getElementById('field-evidence-ledger')?.scrollIntoView({behavior:'smooth',block:'start'});
+    setActiveWorkspace('field');
+    // The separate field workspace keeps the evidence form reachable by normal scroll.
   };
   const exportEvidence=()=>{
     try{
@@ -710,6 +759,7 @@ export default function App() {
           />
         </div>
         <div className="top-actions">
+          <button className="ghost-button" onClick={()=>navigateWorkspace('workspace')}>Workspace</button>
           <button className="ghost-button" onClick={() => evieRef.current?.click()} title="Stage an EVIE CAD proposal">EVIE CAD</button>
           <button className="ghost-button" onClick={() => importRef.current?.click()}>Import</button>
           <button className="ghost-button" onClick={exportJson}>JSON</button>
@@ -727,7 +777,9 @@ export default function App() {
               className={activeTool === tool.id ? 'tool-button active' : 'tool-button'}
               aria-pressed={activeTool === tool.id}
               title={`${tool.label} (${tool.key})`}
-              onClick={() => { if (routeDraft && tool.id !== 'pathway') setRouteDraft(null); setActiveTool(tool.id); }}
+              onClick={() => { if (routeDraft && tool.id !== 'pathway') setRouteDraft(null);
+                if(tool.id==='pathway')setActiveWorkspace('network');
+                setActiveTool(tool.id); }}
             >
               <span className="tool-icon">{tool.icon}</span>
               <span>{tool.label}</span>
@@ -788,6 +840,7 @@ export default function App() {
           </Suspense>
 
           <div className="inspector">
+            <WorkspaceNavigator current={activeWorkspace} onChange={navigateWorkspace} />
             <div className="inspector-heading">
               <div>
                 <span className="eyebrow">INSPECTOR</span>
@@ -833,6 +886,11 @@ export default function App() {
               </div>
             )}
 
+            {activeWorkspace==='workspace'&&<WorkspaceHome
+              summary={workspaceSummary} onNavigate={navigateWorkspace}
+              onExportJson={exportJson} onOpenImport={()=>importRef.current?.click()}
+            />}
+            {activeWorkspace==='design'&&<>
             <RoomAnalysisPanel
               analysis={labeledAnalysis} units={project.metadata.units}
               showRooms={showRooms} onToggle={setShowRooms}
@@ -849,6 +907,8 @@ export default function App() {
             />
             <input ref={annotationImportRef} type="file" hidden accept="application/json,.json" onChange={importRoomNotes} />
 
+            </>}
+            {activeWorkspace==='network'&&<>
             <NetworkPlanningPanel
               report={networkReport} hubId={networkReport.hubId||''}
               onSetHub={setNetworkHubId}
@@ -893,6 +953,8 @@ export default function App() {
 
             <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview}
               onEvidenceTarget={setEvidenceTargetId} />
+            </>}
+            {activeWorkspace==='field'&&<>
             <FieldReadinessPanel
               report={readinessReview} onExport={exportFieldReadiness}
               onInspectTarget={openReadinessEvidence}
@@ -906,20 +968,27 @@ export default function App() {
             <input ref={evidenceImportRef} type="file" hidden accept="application/json,.json"
               onChange={importEvidence} />
 
+            </>}
+            {activeWorkspace==='handoff'&&<>
+            <HandoffShelf
+              items={handoffShelf} selectedId={handoffSelectedId}
+              onSelect={selectShelfItem} onRemove={removeShelfItem}
+              onClear={clearShelf} onBrowse={()=>handoffImportRef.current?.click()}
+            />
             <FieldHandoffPanel
               preview={handoffPreview} onExport={exportHandoffBundle}
               onInspect={()=>handoffImportRef.current?.click()}
               onClear={()=>setHandoffPreview(null)}
             />
-            <input ref={handoffImportRef} type="file" hidden accept="application/json,.json"
+            <input ref={handoffImportRef} type="file" hidden multiple accept="application/json,.json"
               onChange={inspectHandoffFile} />
-
-            <div className="project-settings">
+            </>}
+            {activeWorkspace==='design'&&<div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>
               <label>Grid<select value={project.metadata.grid} onChange={(event) => commit((current) => touchProject(current, { metadata: { grid: Number(event.target.value) } }))}>{![0.25, 0.5, 1, 2].includes(project.metadata.grid) && <option value={project.metadata.grid}>{Number(project.metadata.grid.toPrecision(6))}</option>}<option value="0.25">0.25</option><option value="0.5">0.5</option><option value="1">1</option><option value="2">2</option></select></label>
               <button className="small-button" onClick={restoreSample}>Sample</button>
               <button className="small-button danger-text" onClick={clearPlan}>Clear</button>
-            </div>
+            </div>}
           </div>
         </section>
       </main>
