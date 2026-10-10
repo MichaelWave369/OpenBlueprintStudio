@@ -285,3 +285,45 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .logical-link span { color:#cae6f2; font:10px Consolas,monospace; }
 .logical-link small { color:var(--amber); font-size:10px; }
 @media(max-width:380px){ .logical-port-grid {grid-template-columns:repeat(6,minmax(0,1fr))} }
+
+/* R12: offline/static topology reconciliation and keyboard-accessible SVG diagram. */
+.topology-visualizer{display:grid;gap:11px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.topology-visualizer .room-panel-heading h3{margin:3px 0 0;font-size:12px}
+.topology-kpis{display:flex;flex-wrap:wrap;gap:6px}
+.topology-kpis span{border:1px solid var(--line);border-radius:5px;padding:6px 8px;display:grid;gap:2px;font-size:10px;color:var(--muted);min-width:68px}
+.topology-kpis strong{font:700 17px Consolas,monospace;color:#d9f8ff}
+.topology-kpis .topology-kpi-warn strong{color:var(--amber)}
+.topology-key{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;color:#8aaabd;font-size:9px}
+.topology-key span{display:flex;align-items:center;gap:6px}
+.topology-key i{width:17px;height:2px;display:block;flex:none}
+.topology-key-placement{border-top:2px dashed #6a94af}
+.topology-key-logical{background:#c4b5fd}
+.topology-key-allocation{background:#a7f3d0}
+.topology-key-review{background:#f7b84b}
+.topology-canvas-scroll{width:100%;max-height:400px;overflow:auto;border:1px solid rgba(116,204,240,.2);background:#06111e;border-radius:7px}
+.topology-canvas-scroll svg{display:block;max-width:none}
+.topology-column-heading{font:700 15px Consolas,monospace;fill:#86a8bd;letter-spacing:1px}
+.topology-edges .topology-edge{fill:none;stroke-width:2.2;opacity:.55}
+.topology-edge.placement{stroke:#638eaa;stroke-dasharray:3 8}
+.topology-edge.logical{stroke:#c4b5fd;stroke-dasharray:7 4}
+.topology-edge.allocation{stroke:#a7f3d0;stroke-dasharray:5 5}
+.topology-edge.review{stroke:#f7b84b;opacity:.85;stroke-dasharray:4 4}
+.topology-node{cursor:pointer}
+.topology-node:focus{outline:none}
+.topology-node:focus rect,.topology-node.selected rect{filter:drop-shadow(0 0 5px rgba(247,184,75,.65))}
+.topology-node.neighbor rect{stroke-width:2}
+.topology-node-title{fill:#dff7ff;font:700 13px system-ui,sans-serif}
+.topology-node-subtitle{fill:#8faec0;font:11px Consolas,monospace}
+.topology-inspect{display:grid;gap:7px;padding:11px;border:1px solid rgba(247,184,75,.32);background:rgba(247,184,75,.045);font-size:10px;color:#bad5e2}
+.topology-inspect strong{font-size:11px;color:#f2faff}
+.topology-inspect p{margin:0;line-height:1.5;overflow-wrap:anywhere}
+.topology-empty{font-size:11px;color:var(--muted);padding:16px;border:1px dashed var(--line)}
+.topology-ledger{display:grid;gap:7px}
+.topology-ledger .rack-row-title strong{font-size:11px}
+.topology-ledger .rack-row-title span{font:10px Consolas,monospace;color:var(--muted)}
+.topology-ledger>p{color:var(--muted);font-size:10px;margin:0;line-height:1.5}
+.topology-finding{display:grid;gap:5px;padding:8px;border-left:2px solid #719fb4;background:#0b1c2b;font-size:10px}
+.topology-finding.review{border-left-color:var(--amber)}
+.topology-finding strong{color:#c1ddec;font-size:10px}
+.topology-finding span{color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.topology-finding button{justify-self:start}

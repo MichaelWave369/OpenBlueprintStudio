@@ -6,6 +6,8 @@ import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
 import PathwayDesignPanel from './PathwayDesignPanel.jsx';
 import RackPlanningPanel from './RackPlanningPanel.jsx';
 import LogicalTopologyPanel from './LogicalTopologyPanel.jsx';
+import TopologyDiagramPanel from './TopologyDiagramPanel.jsx';
+import {buildTopologyDiagram,topologyDiagramSnapshot} from './topologyDiagram.js';
 import {
   emptyTopology,loadTopology,saveTopology,addSwitch,deleteSwitch,setSwitchPortType,
   proposeLink,deleteLink,parseTopology,serializeTopology,reviewTopology,
@@ -238,6 +240,8 @@ export default function App() {
     [project,rackPlan,evaluatedRoutes,networkReport]);
   const topologyReview=useMemo(()=>reviewTopology(logicalTopology,rackPlan,rackReview),
     [logicalTopology,rackPlan,rackReview]);
+  const diagramReview=useMemo(()=>buildTopologyDiagram(rackPlan,rackReview,topologyReview,networkReport),
+    [rackPlan,rackReview,topologyReview,networkReport]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -436,6 +440,13 @@ export default function App() {
       setLogicalTopology(incoming);
       setNotice('Unverified logical topology imported; inspect proposed interface assumptions and warnings.');
     }catch(error){setNotice('Topology import rejected: '+error.message);}
+  };
+  const exportDiagramReview=()=>{
+    try{
+      downloadText(safeFilename(project.metadata.title,'topology-review.json'),
+        topologyDiagramSnapshot(diagramReview),'application/json');
+      setNotice('Offline topology reconciliation snapshot exported. NO devices were probed or verified.');
+    }catch(error){setNotice('Diagram export rejected: '+error.message);}
   };
   const exportNetworkSnapshot=()=>{
     downloadText(safeFilename(project.metadata.title,'network-review.json'),
@@ -770,6 +781,8 @@ export default function App() {
               onImport={()=>topologyImportRef.current?.click()}
             />
             <input ref={topologyImportRef} type="file" hidden accept="application/json,.json" onChange={importLogicalTopology} />
+
+            <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R12 offline topology visualizer:** deterministic read-only SVG diagram of existing R8/R10/R11 proposals with clickable rack, switch, panel and drop nodes; separate rack membership, proposed logical links and panel/drop allocations. Local consistency ledger flags stale equipment, missing references, untraced pathways and unassigned room drops. No ping, SNMP, device execution or live diagnostics.
 - **R11 governed logical topology:** create speculative switches in R10 rack slots, assign planned interface types per logical port, and propose unique switch-to-panel or switch-to-switch connections. Detect stale rack, U-slot conflicts, missing patch panels, incompatible interfaces and unallocated panel ports. Stored under an independent local sidecar; no live device discovery or operational link claims.
 - **R10 conceptual rack and patch panel planning:** create virtual racks anchored to schematic network hubs, reserve 1U panel slots, allocate unique logical patch-panel ports to network symbols, and cross-check R9 pathway review status. Locally saved under its own versioned rack-plan sidecar. No actual link, switch, device, or installed-jack claims.
 - **R9 operator-drawn pathway proposals:** choose a network hub/destination, click 2D waypoints (P), save an explicitly unapproved concept sketch, display derived polyline length and warn about wall-centerline contacts. Proposals are saved separately with an independent versioned localStorage contract; no implicit cable route or installation certification.
@@ -112,3 +113,11 @@ The **Switches & Links** panel builds on R10 racks and patch panels. Add an *unv
 **Every single connection is an operator-drawn intention, NOT actual connectivity.** R11 does not probe devices, retrieve hardware models, check switch/patch-cord compatibility, provision VLANs, measure PoE, test Ethernet reachability or establish cable certification. UI actions cannot change R10 port allocations, R9 pathways, R7 room annotations or the v1 blueprint and EVIE contracts.
 
 Topology saves in a separate local-only `openblue.logical-topology/1` sidecar, with versioned JSON export/import and human confirmation. Import is refused if rack/panel references no longer match. Replacing a blueprint or approving an EVIE proposal clears active topology, so export first. Read the [R11 topology data contract](docs/OPENBLUE_R11.md).
+
+## R12: Network Topology Map and static findings
+
+The **Network Topology Map** joins currently loaded R8 network drops, R10 rack / patch-panel records and R11 logical switch and link proposals into an accessible, clickable SVG. Nodes carry their existing IDs and proposal state; the graph distinguishes rack membership (never a network edge), speculative switch or patch links, and R10's proposed panel-to-drop allocations. Select nodes to inspect their source record and related proposal edges.
+
+The static findings ledger looks for missing referenced objects, stale rack anchors, switch U-slot conflicts, panel mapping inconsistencies, network drops without confidently detected rooms, and R9 paths that were not traced. **These are local consistency diagnostics, not network health tests.** A zero-warning graph proves neither cable continuity nor a working link. The diagram caps rendering at 28 nodes per category to protect browser performance, but the findings and JSON snapshot cover the complete in-memory proposal dataset.
+
+Export **`openblue.topology-review/1` JSON** for a read-only review receipt. This is a derived snapshot, not a new editable sidecar. It never writes to or imports from CAD, EVIE or R7-R11 records; no network calls or device probes occur. See [R12 verification contract](docs/OPENBLUE_R12.md).
