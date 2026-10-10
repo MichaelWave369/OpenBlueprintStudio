@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R15 portable field handoff packages:** consent-gated, nine-section offline JSON export for CAD, room annotations, pathway plans, racks, proposed topology, field evidence and R8/R12/R14 review snapshots. SHA-256 per-section/manifest integrity; import inspects without mutating local data. No signatures, external attachments, automatic approval or background network requests.
 - **R14 field inspection checklist and review gate:** derive mandatory rack/switch/panel/drop/link/port-allocation checks from the R12 graph and R13 receipt ledger. Human-reviewed reported-PASS coverage, fail-closed design/scope blockers, latest-report precedence, and review-only JSON snapshot. A completion candidate is never installer authorization or independent physical verification.
 - **R13 field evidence ledger:** record referenced, human-reported field observations on specific R12 nodes or edges; append human review receipts by a second person; automatically mark evidence stale when design fingerprints change. Separate local append-only receipt chain, schema-checked import/export; no automatic verification, signatures or real network tests.
 - **R12 offline topology visualizer:** deterministic read-only SVG diagram of existing R8/R10/R11 proposals with clickable rack, switch, panel and drop nodes; separate rack membership, proposed logical links and panel/drop allocations. Local consistency ledger flags stale equipment, missing references, untraced pathways and unassigned room drops. No ping, SNMP, device execution or live diagnostics.
@@ -143,3 +144,13 @@ The gate stays `HOLD_FOR_DOCUMENTATION` if any required component category is ab
 Only when all six component categories exist, there are **zero static planning blockers**, and every item has a current, separately reviewed reported-PASS claim does OpenBlue show `DOCUMENTATION_REVIEW_CANDIDATE`. This means **ready to be inspected by an authorized human**, *not* construction authorization, independent device/cable verification, permission to drill, network connectivity or regulatory compliance.
 
 R14 uses no new writable sidecar and changes no existing CAD/EVIE/R7-R13 schemas. Export `openblue.field-readiness-review/1` JSON for a read-only checklist receipt, including evidence receipt IDs and unresolved actions. See [R14 readiness criteria](docs/OPENBLUE_R14.md).
+
+## R15: Portable Field Handoff Package
+
+The **Field Handoff Package** panel exports the active project into a single operator-authorized `*.openblue-field-handoff.json` file, including the v1 blueprint, R7 annotations, R9 pathways, R10 rack inventory, R11 logical topology, R13 human-reported evidence receipt ledger, and read-only snapshots from R8 network planning, R12 topology and R14 documentation checklist. The export includes exactly **nine schema-checked sections**. The R13 ledger references external evidence as filenames/IDs, **not embedded attachments**.
+
+Each section has an independent **SHA-256** digest and byte count; a manifest digest is also checked on inspection. This is a **consistency check**, not proof of origin, reporter identity, signing, tamper-resistant history or independently observed field conditions. A malicious editor can rewrite data and all included hashes. Recipients need a trusted out-of-band source for authenticating authorship and checking actual photos/test reports.
+
+**Import is PREVIEW ONLY:** the inspector validates nested formats and hash matches, shows inventory/report counts, embedded readiness state, and known missing blueprint network references. It does not change project geometry, localStorage sidecars, EVIE proposals, route drawings, approvals, or ledger events. R8/R12/R14 derived snapshots are retained as authored, not independently recomputed or certified on import. No network calls or automatic device probes.
+
+Packages are bounded to 7MB, with 2.5MB per section. Export requires explicit privacy acknowledgment and browser confirmation because technician/reviewer names, project layouts and evidence references may be sensitive. Uses browser WebCrypto SHA-256 with secure context required. See [R15 data and handoff contract](docs/OPENBLUE_R15.md).
