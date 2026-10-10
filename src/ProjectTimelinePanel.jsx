@@ -10,7 +10,7 @@ export default function ProjectTimelinePanel({
  const [name,setName]=useState('');
  const [showDetails,setShowDetails]=useState(false);
  const chosen=timeline.checkpoints.find(x=>x.id===selectedId)||null;
- return <section id="openblue-project-timeline" className="project-timeline-panel" aria-label="Project version timeline and safe recovery checkpoints">
+ return <section className="project-timeline-panel" aria-label="Project version timeline and safe recovery checkpoints">
    <div className="room-panel-heading">
      <div><span className="eyebrow">R19 · OPERATOR CHECKPOINTS</span><h3>Project Timeline & Recovery</h3></div>
      <span className="room-state">{timeline.checkpoints.length}/{MAX_CHECKPOINTS} LOCAL</span>

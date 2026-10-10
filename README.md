@@ -233,3 +233,7 @@ The Overview workspace has a new **Run complete local self-test** control. No ch
 The self-test reports `LOCAL_CHECKS_PASSED`, `OPERATOR_ATTENTION`, or `OPERATOR_REVIEW_REQUIRED`. It does not confuse missing first-run/autosave keys with corrupt data; a current-vs-persisted mismatch is **WARN** because an autosave may be pending. Corrupt stored source, project vault, or timeline remain untouched and fail visibly. A full audit displays generic status codes and counts, and its `openblue.operator-self-test/1` JSON export deliberately omits project geometry, site titles, reporter identities, file contents, and field evidence receipts.
 
 A passing health check is **not proof of durability, device connectivity, construction authorization, an actual browser restore, cryptographic authenticity, or installer approval**. It cannot detect all browser storage failures or guarantee external backup safety. See [R22 Self-Test contract](docs/OPENBLUE_R22.md).
+
+## R23: Real Chromium regression gate
+
+R23 adds a blocking production-preview Playwright browser suite covering wall drawing + autosave reload + SVG export, R17 Project Library isolation/safety snapshots, R19 checkpoint restore and R22 private diagnostics export. Run `npm run build`, `npx playwright install chromium`, then `npm run test:e2e` under Node 22+ and npm 11.6.2. See [R23 E2E contract](docs/OPENBLUE_R23.md).

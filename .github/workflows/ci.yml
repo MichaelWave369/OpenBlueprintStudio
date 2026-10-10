@@ -21,7 +21,33 @@ jobs:
       - run: npm run build
       - name: Production dependency high-severity audit
         run: npm audit --omit=dev --audit-level=high
-      # R21: audit all dependencies, including developer/build tools.
-      # Any npm advisory, even LOW, now fails CI. No continue-on-error.
       - name: Full dependency audit (blocking)
         run: npm audit --audit-level=low
+  browser-e2e:
+    name: Chromium · Production UI E2E
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Pin npm version for lockfile compatibility
+        run: npm install --global npm@11.6.2
+      - run: npm ci
+      - run: npm run build
+      - name: Install official Playwright Chromium with system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run production-preview browser end-to-end suite
+        run: npm run test:e2e
+      - name: Upload failed browser traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: openblue-chromium-e2e-failures
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
