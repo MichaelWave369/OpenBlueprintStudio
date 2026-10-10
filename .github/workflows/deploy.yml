@@ -25,6 +25,8 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
+      - name: Pin npm version for lockfile compatibility
+        run: npm install --global npm@11.6.2
       - name: Install locked dependencies
         run: npm ci
       - name: Run unit tests
