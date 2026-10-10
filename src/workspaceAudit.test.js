@@ -53,11 +53,26 @@ describe('R18 read-only workspace recovery audit',()=>{
  });
  it('flags unmatched saved room semantic labels without rewriting them',()=>{
   const data=source();
-  data.roomAnnotations.entries['orphan-room']={name:'Office',usage:'work',notes:''};
+  data.roomAnnotations.entries['connected|orphan-room']={name:'Office',usage:'work',notes:''};
   const before=JSON.stringify(data);
   const audit=auditWorkspace(data);
   expect(audit.findings.map(x=>x.code)).toContain('ROOM_ANNOTATION_UNMATCHED');
   expect(JSON.stringify(data)).toBe(before);
+ });
+ it('does not silently reuse field receipts when an associated schematic drop disappears',()=>{
+  const data=source();
+  const originalGraph={nodes:[{id:'drop:["drop-A"]',type:'drop',
+    title:'drop-A',description:'unassigned',state:'unknown'}],edges:[]};
+  data.fieldEvidence=appendEvidenceReport(data.fieldEvidence,originalGraph,{
+    targetId:'drop:["drop-A"]',reporter:'Field Technician',
+    method:'visual-inspection',result:'reported-pass',
+    evidenceRef:'Site A sheet 1',notes:'Observed point in old geometry.',
+  },'2026-10-10T04:30:00.000Z');
+  data.project.symbols=[];
+  const audit=auditWorkspace(data);
+  expect(audit.status).toBe('RESTORABLE_WITH_FINDINGS');
+  expect(audit.findings.map(x=>x.code)).toContain('EVIDENCE_ORPHANED');
+  expect(data.fieldEvidence.events[0].evidenceRef).toBe('Site A sheet 1');
  });
  it('exports deterministic audit receipts with no mutating restore instruction',()=>{
   const data=source(),audit=auditWorkspace(data);
