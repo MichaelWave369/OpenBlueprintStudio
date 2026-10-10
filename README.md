@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R11 governed logical topology:** create speculative switches in R10 rack slots, assign planned interface types per logical port, and propose unique switch-to-panel or switch-to-switch connections. Detect stale rack, U-slot conflicts, missing patch panels, incompatible interfaces and unallocated panel ports. Stored under an independent local sidecar; no live device discovery or operational link claims.
 - **R10 conceptual rack and patch panel planning:** create virtual racks anchored to schematic network hubs, reserve 1U panel slots, allocate unique logical patch-panel ports to network symbols, and cross-check R9 pathway review status. Locally saved under its own versioned rack-plan sidecar. No actual link, switch, device, or installed-jack claims.
 - **R9 operator-drawn pathway proposals:** choose a network hub/destination, click 2D waypoints (P), save an explicitly unapproved concept sketch, display derived polyline length and warn about wall-centerline contacts. Proposals are saved separately with an independent versioned localStorage contract; no implicit cable route or installation certification.
 - **R8 IT planning:** read-only network-drop inventory by detected zone, reference-hub selection, minimum straight-line horizontal distances, optional noninteractive SVG guides and a portable review-only JSON snapshot. Exact shared-wall subsegments drive geometric adjacency, never implied doorways, network links or cable routes.
@@ -103,3 +104,11 @@ Select an R8 reference hub, create a conceptual rack and add nominal 12/24/48-po
 The optional R9 path review is associated by rack hub and drop ID: `untraced`, `wall-review`, `stale-pathway`, or `proposal-clear`. Even a clear result means only that the operator's drawn 2D sketch has no detected wall-centerline contact, **never** that a real cable, patch cord, switch port or network link exists.
 
 Rack records use independent `openblue.rack-plan/1` localStorage and JSON exports. Move/remove an anchor network symbol and the corresponding rack flags stale or missing instead of remapping. Import validates the live project references and requires confirmation. Clearing/importing a plan or accepting EVIE resets the active rack sidecar, so export before replacing the drawing. Existing project/EVIE schema contracts are unchanged. See [R10 data contract](docs/OPENBLUE_R10.md).
+
+## R11: Logical Switches and Topology
+
+The **Switches & Links** panel builds on R10 racks and patch panels. Add an *unverified* switch in a free 1U slot, choose 8/16/24/48 nominal ports, and set per-port **assumed** RJ45 1G, RJ45 2.5G, or SFP+ 10G interfaces. Select ports to propose patch-panel terminations or switch-to-switch uplinks. The pure validator rejects incompatible interfaces, duplicate port occupancy and links to invalid switches, and the live review flags deleted panels, stale rack anchors and rack U-slot collisions caused by subsequent R10 edits.
+
+**Every single connection is an operator-drawn intention, NOT actual connectivity.** R11 does not probe devices, retrieve hardware models, check switch/patch-cord compatibility, provision VLANs, measure PoE, test Ethernet reachability or establish cable certification. UI actions cannot change R10 port allocations, R9 pathways, R7 room annotations or the v1 blueprint and EVIE contracts.
+
+Topology saves in a separate local-only `openblue.logical-topology/1` sidecar, with versioned JSON export/import and human confirmation. Import is refused if rack/panel references no longer match. Replacing a blueprint or approving an EVIE proposal clears active topology, so export first. Read the [R11 topology data contract](docs/OPENBLUE_R11.md).

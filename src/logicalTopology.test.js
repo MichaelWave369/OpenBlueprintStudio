@@ -46,13 +46,13 @@ describe('R11 governed logical switch planning',()=>{
     expect(()=>proposeLink(topo,racks,'swA',1,{kind:'panel',rackId:'rackA',panelId:'panel1',port:25},'bad')).toThrow('does not exist');
   });
   it('rejects incompatible interface types and duplicated switch endpoints',()=>{
-    const {racks,topo}=seeded();
+    const {p,racks,topo}=seeded();
     const two=addSwitch(topo,racks,'rackA','Switch B',8,'sfp-10g',3,'swB');
     expect(()=>proposeLink(two,racks,'swA',1,{kind:'switch',switchId:'swB',port:1},'bad')).toThrow('incompatible');
     expect(()=>proposeLink(two,racks,'swB',1,{kind:'panel',rackId:'rackA',panelId:'panel1',port:2},'bad')).toThrow('SFP+');
     const aligned=setSwitchPortType(two,'swA',23,'sfp-10g');
     const linked=proposeLink(aligned,racks,'swA',23,{kind:'switch',switchId:'swB',port:1},'uplink');
-    expect(reviewTopology(linked,racks).links[0].state).toBe('proposed-uplink');
+    expect(reviewTopology(linked,racks,reviewRackPlan(p,racks)).links[0].state).toBe('proposed-uplink');
     expect(()=>setSwitchPortType(linked,'swB',1,'rj45-1g')).toThrow('incompatible');
     expect(deleteSwitch(linked,'swA').links).toHaveLength(0);
   });

@@ -5,6 +5,11 @@ import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
 import PathwayDesignPanel from './PathwayDesignPanel.jsx';
 import RackPlanningPanel from './RackPlanningPanel.jsx';
+import LogicalTopologyPanel from './LogicalTopologyPanel.jsx';
+import {
+  emptyTopology,loadTopology,saveTopology,addSwitch,deleteSwitch,setSwitchPortType,
+  proposeLink,deleteLink,parseTopology,serializeTopology,reviewTopology,
+} from './logicalTopology.js';
 import {
   emptyRackPlan,loadRackPlan,saveRackPlan,addRack,addPatchPanel,
   assignPort,releasePort,removePanel,removeRack,
@@ -96,6 +101,8 @@ export default function App() {
   const [showNetworkGuides,setShowNetworkGuides] = useState(true);
   const [pathways,setPathways] = useState(()=>loadPathways().doc);
   const [rackPlan,setRackPlan] = useState(()=>loadRackPlan().doc);
+  const [logicalTopology,setLogicalTopology] = useState(()=>loadTopology().doc);
+  const topologyImportRef=useRef(null);
   const rackImportRef=useRef(null);
   const [pathwayTargetId,setPathwayTargetId] = useState('');
   const [routeDraft,setRouteDraft] = useState(null);
@@ -162,6 +169,13 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      try{saveTopology(logicalTopology)}catch(error){setNotice('Logical topology not saved: '+error.message+'. Export a backup.')}
+    },260);
+    return ()=>clearTimeout(timer);
+  },[logicalTopology]);
+
+  useEffect(()=>{
+    const timer=setTimeout(()=>{
       try{saveRackPlan(rackPlan)}
       catch(error){setNotice('Rack plan not saved: '+error.message+'. Export a backup.')}
     },260);
@@ -222,6 +236,8 @@ export default function App() {
   const evaluatedRoutes=useMemo(()=>evaluatePathwayDocument(project,pathways),[project,pathways]);
   const rackReview=useMemo(()=>reviewRackPlan(project,rackPlan,evaluatedRoutes,networkReport),
     [project,rackPlan,evaluatedRoutes,networkReport]);
+  const topologyReview=useMemo(()=>reviewTopology(logicalTopology,rackPlan,rackReview),
+    [logicalTopology,rackPlan,rackReview]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -301,6 +317,7 @@ export default function App() {
     }catch(error){setNotice('Pathway import rejected: '+error.message);}
   };
   const replaceRoomNotesForNewPlan = () => {
+    setLogicalTopology(emptyTopology());
     setRackPlan(emptyRackPlan());
     setPathways(emptyPathways());
     setRouteDraft(null);
@@ -361,6 +378,64 @@ export default function App() {
       if(!window.confirm(`Import ${incoming.racks.length} proposed rack(s) and ${incoming.assignments.length} port mapping(s)? Existing local rack plans will be replaced.`))return;
       setRackPlan(incoming);setNotice('Unverified rack plan imported. Review pathway and occupancy warnings.');
     }catch(error){setNotice('Rack import rejected: '+error.message);}
+  };
+  const addLogicalSwitch=(rackId,name,count,kind,unit)=>{
+    try{
+      const rackState=rackReview.racks.find(r=>r.id===rackId)?.status;
+      if(rackState!=='anchored')throw Error('Rack hub is stale or missing. Verify R10 position first.');
+      const id=makeId('switch');
+      setLogicalTopology(addSwitch(logicalTopology,rackPlan,rackId,name,count,kind,unit,id));
+      setNotice('Unverified logical switch added; no device has been discovered.');
+      return id;
+    }catch(error){setNotice('Switch not created: '+error.message);return null;}
+  };
+  const removeLogicalSwitch=id=>{
+    if(!window.confirm('Remove this conceptual switch and all proposed links touching its ports?'))return;
+    try{setLogicalTopology(deleteSwitch(logicalTopology,id));setNotice('Switch and proposed links removed.');}
+    catch(error){setNotice('Switch removal rejected: '+error.message);}
+  };
+  const updateLogicalPortType=(switchId,port,kind)=>{
+    try{setLogicalTopology(setSwitchPortType(logicalTopology,switchId,port,kind));
+      setNotice('Planned interface type changed; no hardware capability verified.');}
+    catch(error){setNotice('Port type change rejected: '+error.message);}
+  };
+  const createLogicalLink=(switchId,port,target)=>{
+    try{
+      if(topologyReview.switches.find(s=>s.id===switchId)?.state!=='concept-only')
+        throw Error('Source switch rack or slot needs review.');
+      if(target.kind==='switch' && topologyReview.switches.find(s=>s.id===target.switchId)?.state!=='concept-only')
+        throw Error('Target switch rack or slot needs review.');
+      if(target.kind==='panel' && rackReview.racks.find(r=>r.id===target.rackId)?.status!=='anchored')
+        throw Error('Target patch-panel rack anchor needs review.');
+      setLogicalTopology(proposeLink(logicalTopology,rackPlan,switchId,port,target,makeId('link')));
+      setNotice('Operator-proposed logical link saved; it is NOT connected or verified.');
+    }catch(error){setNotice('Logical link rejected: '+error.message);}
+  };
+  const removeLogicalLink=id=>{
+    try{setLogicalTopology(deleteLink(logicalTopology,id));setNotice('Proposed link removed.');}
+    catch(error){setNotice('Logical link removal rejected: '+error.message);}
+  };
+  const exportLogicalTopology=()=>{
+    try{
+      downloadText(safeFilename(project.metadata.title,'logical-topology.json'),
+        serializeTopology(logicalTopology),'application/json');
+      setNotice('Unverified logical topology exported separately from CAD and rack records.');
+    }catch(error){setNotice('Topology export failed: '+error.message);}
+  };
+  const importLogicalTopology=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(file.size>500000)throw Error('Topology file exceeds 500 KB.');
+      const incoming=parseTopology(await file.text());
+      const check=reviewTopology(incoming,rackPlan,rackReview);
+      if(check.switches.some(s=>s.state!=='concept-only')||
+        check.links.some(l=>['stale-source','stale-target','missing-panel-port','stale-panel-rack'].includes(l.state)))
+        throw Error('Imported switch or panel references do not match the current R10 plan. No silent remapping.');
+      if(!window.confirm(`Import ${incoming.switches.length} logical switch(es) and ${incoming.links.length} proposed link(s)? Existing local logical topology will be replaced.`))return;
+      setLogicalTopology(incoming);
+      setNotice('Unverified logical topology imported; inspect proposed interface assumptions and warnings.');
+    }catch(error){setNotice('Topology import rejected: '+error.message);}
   };
   const exportNetworkSnapshot=()=>{
     downloadText(safeFilename(project.metadata.title,'network-review.json'),
@@ -685,6 +760,16 @@ export default function App() {
               onExport={exportRackPlan} onImport={()=>rackImportRef.current?.click()}
             />
             <input ref={rackImportRef} type="file" hidden accept="application/json,.json" onChange={importRackPlan} />
+
+            <LogicalTopologyPanel
+              plan={logicalTopology} review={topologyReview} rackPlan={rackPlan}
+              rackReview={rackReview} onCreateSwitch={addLogicalSwitch}
+              onRemoveSwitch={removeLogicalSwitch} onPortType={updateLogicalPortType}
+              onCreateLink={createLogicalLink} onRemoveLink={removeLogicalLink}
+              onExport={exportLogicalTopology}
+              onImport={()=>topologyImportRef.current?.click()}
+            />
+            <input ref={topologyImportRef} type="file" hidden accept="application/json,.json" onChange={importLogicalTopology} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

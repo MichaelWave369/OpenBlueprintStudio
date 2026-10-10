@@ -263,3 +263,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .rack-port-editor strong{color:#f6faff}
 .rack-port-editor>button{justify-self:start}
 @media(max-width:380px){.rack-port-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
+/* R11: fully local hypothetical switch and port topology. */
+.logical-panel { display:grid; gap:10px; margin-top:14px; padding-top:13px; border-top:1px solid var(--line); }
+.logical-panel .room-panel-heading h3 { margin:3px 0 0; font-size:12px; }
+.logical-create { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; }
+.logical-create label,.logical-port-details label { display:grid; gap:5px; font-size:10px; color:#97c4d6; min-width:0; }
+.logical-create input,.logical-create select,.logical-port-details select { width:100%; min-width:0; background:#081525; color:#eaf9ff; border:1px solid var(--line); padding:8px; }
+.logical-selected { display:grid; gap:10px; border:1px solid var(--line); padding:10px; background:rgba(87,215,255,.03); }
+.logical-port-grid { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:4px; }
+.logical-port-grid button { border:1px solid var(--line); background:#0c2534; color:#98bdd0; font:10px Consolas,monospace; min-height:29px; cursor:pointer; }
+.logical-port-grid button.linked { background:rgba(141,247,208,.12); color:#8df7d0; border-color:rgba(141,247,208,.35); }
+.logical-port-grid button.selected { outline:2px solid var(--amber); outline-offset:-2px; color:#ffe6ab; }
+.logical-port-grid button:hover { border-color:var(--cyan); }
+.logical-port-details { display:grid; gap:8px; border-top:1px solid var(--line); padding-top:8px; }
+.logical-port-details strong,.logical-links>strong { color:#eaf9ff; font-size:11px; }
+.logical-port-details p { margin:0; font-size:10px; color:var(--muted); line-height:1.6; }
+.logical-links { display:grid; gap:6px; }
+.logical-link { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:8px; border:1px solid var(--line); }
+.logical-link div { display:grid; gap:4px; min-width:0; overflow-wrap:anywhere; }
+.logical-link span { color:#cae6f2; font:10px Consolas,monospace; }
+.logical-link small { color:var(--amber); font-size:10px; }
+@media(max-width:380px){ .logical-port-grid {grid-template-columns:repeat(6,minmax(0,1fr))} }
