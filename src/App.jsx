@@ -4,6 +4,12 @@ import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
 import PathwayDesignPanel from './PathwayDesignPanel.jsx';
+import RackPlanningPanel from './RackPlanningPanel.jsx';
+import {
+  emptyRackPlan,loadRackPlan,saveRackPlan,addRack,addPatchPanel,
+  assignPort,releasePort,removePanel,removeRack,
+  parseRackPlan,serializeRackPlan,reviewRackPlan,
+} from './rackPlanning.js';
 import {
   emptyPathways,loadPathways,savePathways,createPathwayProposal,
   upsertPathway,removePathway,evaluatePathwayDocument,
@@ -26,6 +32,7 @@ import {
   convertProjectUnits,
   deleteElement,
   findElement,
+  makeId,
   moveWallEndpoint,
   parseProjectJson,
   serializeProject,
@@ -88,6 +95,8 @@ export default function App() {
   const [networkHubId,setNetworkHubId] = useState('');
   const [showNetworkGuides,setShowNetworkGuides] = useState(true);
   const [pathways,setPathways] = useState(()=>loadPathways().doc);
+  const [rackPlan,setRackPlan] = useState(()=>loadRackPlan().doc);
+  const rackImportRef=useRef(null);
   const [pathwayTargetId,setPathwayTargetId] = useState('');
   const [routeDraft,setRouteDraft] = useState(null);
   const pathwayImportRef=useRef(null);
@@ -153,6 +162,14 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      try{saveRackPlan(rackPlan)}
+      catch(error){setNotice('Rack plan not saved: '+error.message+'. Export a backup.')}
+    },260);
+    return ()=>clearTimeout(timer);
+  },[rackPlan]);
+
+  useEffect(()=>{
+    const timer=setTimeout(()=>{
       try{savePathways(pathways)}catch(error){setNotice('Pathway proposals not saved: '+error.message+'. Export a backup.')}
     },260);
     return ()=>clearTimeout(timer);
@@ -203,6 +220,8 @@ export default function App() {
     [project,labeledAnalysis,roomAnnotations,networkHubId]);
   const unmatchedAnnotations = Object.keys(roomAnnotations.entries).filter(k => !validRoomKeys.has(k)).length;
   const evaluatedRoutes=useMemo(()=>evaluatePathwayDocument(project,pathways),[project,pathways]);
+  const rackReview=useMemo(()=>reviewRackPlan(project,rackPlan,evaluatedRoutes,networkReport),
+    [project,rackPlan,evaluatedRoutes,networkReport]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -282,12 +301,66 @@ export default function App() {
     }catch(error){setNotice('Pathway import rejected: '+error.message);}
   };
   const replaceRoomNotesForNewPlan = () => {
+    setRackPlan(emptyRackPlan());
     setPathways(emptyPathways());
     setRouteDraft(null);
     setPathwayTargetId('');
     setNetworkHubId('');
     setRoomAnnotations(emptyAnnotations());
     setSelectedRoomKey(null);
+  };
+  const createRackAtHub=(name,capacityU)=>{
+    try{
+      const id=makeId('rack');
+      const next=addRack(rackPlan,project,networkReport.hubId,name,capacityU,id);
+      setRackPlan(next);setNotice('Proposed rack created at selected network reference point.');
+      return id;
+    }catch(error){setNotice('Rack not created: '+error.message);return null;}
+  };
+  const createPanel=(rackId,name,ports)=>{
+    try{
+      const id=makeId('panel');
+      const next=addPatchPanel(rackPlan,rackId,name,ports,id);
+      setRackPlan(next);setNotice('1U patch panel added to proposed inventory.');
+      return id;
+    }catch(error){setNotice('Patch panel not created: '+error.message);return null;}
+  };
+  const allocatePanelPort=(rackId,panelId,port,dropId)=>{
+    try{
+      setRackPlan(assignPort(rackPlan,project,rackId,panelId,port,dropId));
+      setNotice('Concept port allocation saved locally; no physical link is implied.');
+    }catch(error){setNotice('Port allocation rejected: '+error.message);}
+  };
+  const releasePanelPort=(rackId,panelId,port)=>{
+    try{setRackPlan(releasePort(rackPlan,rackId,panelId,port));setNotice('Proposed port released.');}
+    catch(error){setNotice('Port release rejected: '+error.message);}
+  };
+  const removeRackEntry=id=>{
+    if(!window.confirm('Delete this logical rack and its proposed port allocations? Network symbols stay unchanged.'))return;
+    setRackPlan(removeRack(rackPlan,id));setNotice('Rack and its proposed allocations removed.');
+  };
+  const removePanelEntry=(rackId,panelId)=>{
+    if(!window.confirm('Remove this patch panel and its proposed port allocations?'))return;
+    setRackPlan(removePanel(rackPlan,rackId,panelId));setNotice('Patch panel removed.');
+  };
+  const exportRackPlan=()=>{
+    try{
+      downloadText(safeFilename(project.metadata.title,'rack-plan.json'),serializeRackPlan(rackPlan),'application/json');
+      setNotice('Proposed rack plan exported separately from the CAD file.');
+    }catch(error){setNotice('Rack export rejected: '+error.message);}
+  };
+  const importRackPlan=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(file.size>500000)throw Error('Rack plan is larger than 500 KB.');
+      const incoming=parseRackPlan(await file.text());
+      const checked=reviewRackPlan(project,incoming,evaluatedRoutes,networkReport);
+      if(checked.racks.some(r=>r.status!=='anchored')||checked.allocations.some(a=>a.state==='missing-drop'))
+        throw Error('Rack references or allocated network symbols do not match this project. No silent reassignment allowed.');
+      if(!window.confirm(`Import ${incoming.racks.length} proposed rack(s) and ${incoming.assignments.length} port mapping(s)? Existing local rack plans will be replaced.`))return;
+      setRackPlan(incoming);setNotice('Unverified rack plan imported. Review pathway and occupancy warnings.');
+    }catch(error){setNotice('Rack import rejected: '+error.message);}
   };
   const exportNetworkSnapshot=()=>{
     downloadText(safeFilename(project.metadata.title,'network-review.json'),
@@ -603,6 +676,15 @@ export default function App() {
               onImport={()=>pathwayImportRef.current?.click()}
             />
             <input ref={pathwayImportRef} type="file" hidden accept="application/json,.json" onChange={importPathwayNotes} />
+
+            <RackPlanningPanel
+              plan={rackPlan} review={rackReview} drops={networkReport.drops} hubId={networkReport.hubId}
+              onCreateRack={createRackAtHub} onRemoveRack={removeRackEntry}
+              onCreatePanel={createPanel} onRemovePanel={removePanelEntry}
+              onAssign={allocatePanelPort} onRelease={releasePanelPort}
+              onExport={exportRackPlan} onImport={()=>rackImportRef.current?.click()}
+            />
+            <input ref={rackImportRef} type="file" hidden accept="application/json,.json" onChange={importRackPlan} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

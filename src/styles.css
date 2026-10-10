@@ -241,3 +241,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .pathway-state { color:var(--amber); font-size:9px; }
 .pathway-route-record p { margin:0; color:var(--muted); line-height:1.5; }
 .pathway-route-record button { justify-self:start; }
+
+/* R10 concept-only logical rack and 1U patch-panel port inventory. */
+.rack-panel{display:grid;gap:10px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+.rack-panel .room-panel-heading h3{margin:3px 0 0;font-size:12px}
+.rack-create-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.rack-create-fields label,.rack-port-editor label{display:grid;gap:5px;font-size:10px;color:#97c4d6}
+.rack-create-fields input,.rack-create-fields select,.rack-port-editor select{width:100%;min-width:0;padding:8px;border:1px solid var(--line);background:#081525;color:#e9faff}
+.rack-selected{display:grid;gap:9px;border:1px solid var(--line);padding:10px;background:rgba(87,215,255,.03)}
+.rack-selected>span{font:10px Consolas,monospace;color:var(--muted);overflow-wrap:anywhere}
+.rack-row-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.rack-row-title strong{font-size:11px;color:#e8faff}
+.rack-status-good{font:10px Consolas,monospace;color:#8df7d0}
+.rack-status-warning{font:10px Consolas,monospace;color:var(--amber)}
+.rack-port-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.rack-port-grid button{min-height:29px;background:#0b2534;border:1px solid var(--line);color:#93bace;cursor:pointer;font:10px Consolas,monospace}
+.rack-port-grid button:hover{border-color:var(--cyan)}
+.rack-port-grid button.used{background:rgba(141,247,208,.12);color:#8df7d0;border-color:rgba(141,247,208,.35)}
+.rack-port-grid button.chosen{outline:2px solid var(--amber);outline-offset:-2px;color:#ffe3a0}
+.rack-port-editor{display:grid;gap:7px;border-top:1px solid var(--line);padding-top:9px;color:#bbd8e6;font-size:10px}
+.rack-port-editor strong{color:#f6faff}
+.rack-port-editor>button{justify-self:start}
+@media(max-width:380px){.rack-port-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}

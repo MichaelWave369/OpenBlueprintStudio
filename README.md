@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R10 conceptual rack and patch panel planning:** create virtual racks anchored to schematic network hubs, reserve 1U panel slots, allocate unique logical patch-panel ports to network symbols, and cross-check R9 pathway review status. Locally saved under its own versioned rack-plan sidecar. No actual link, switch, device, or installed-jack claims.
 - **R9 operator-drawn pathway proposals:** choose a network hub/destination, click 2D waypoints (P), save an explicitly unapproved concept sketch, display derived polyline length and warn about wall-centerline contacts. Proposals are saved separately with an independent versioned localStorage contract; no implicit cable route or installation certification.
 - **R8 IT planning:** read-only network-drop inventory by detected zone, reference-hub selection, minimum straight-line horizontal distances, optional noninteractive SVG guides and a portable review-only JSON snapshot. Exact shared-wall subsegments drive geometric adjacency, never implied doorways, network links or cable routes.
 - **R7 room annotations:** select recognized regions on the 2D canvas or sidebar; edit name, planned use, and design notes. Annotated labels appear over zones. Metadata is saved locally as a separately versioned sidecar and can be exported/imported with explicit matching checks; blueprint and EVIE schema stay unchanged. Modified boundaries never silently inherit old notes.
@@ -94,3 +95,11 @@ Add `Network (N)` symbols, assign room labels through R7, and open the **Network
 ## R9 pathway proposals
 
 Set a **reference hub** in R8, choose a **destination**, select *Trace/edit pathway (P)* in the Pathway Designer, click intermediate locations on the plan and press *Save proposal*. Paths are human-drawn and are not automatically routed or approved. Readout is total **horizontal 2D polyline length**, not cable length. Walls touched by any segment produce a review warning; "no centerline hits" does not establish a physically clear path. Route endpoints use existing network symbols; moving endpoint symbols makes saved routes stale until re-traced. Waypoints are stored in meters so unit conversion does not change their physical location. Explicit export/import is available for `openblue.pathway-proposals/1` JSON. Import requires matching live network endpoints and human confirmation. Replacing the plan clears the local pathway sidecar, so export first. See [R9 design notes](docs/OPENBLUE_R9.md).
+
+## R10 rack and patch-port planning
+
+Select an R8 reference hub, create a conceptual rack and add nominal 12/24/48-port patch panels. One patch panel consumes an **assumed** 1U slot; actual equipment dimensions are not verified. Select a free port and an existing unallocated network symbol to make an explicit, proposed one-to-one mapping. Each symbol may occupy at most one patch-panel port across the plan.
+
+The optional R9 path review is associated by rack hub and drop ID: `untraced`, `wall-review`, `stale-pathway`, or `proposal-clear`. Even a clear result means only that the operator's drawn 2D sketch has no detected wall-centerline contact, **never** that a real cable, patch cord, switch port or network link exists.
+
+Rack records use independent `openblue.rack-plan/1` localStorage and JSON exports. Move/remove an anchor network symbol and the corresponding rack flags stale or missing instead of remapping. Import validates the live project references and requires confirmation. Clearing/importing a plan or accepting EVIE resets the active rack sidecar, so export before replacing the drawing. Existing project/EVIE schema contracts are unchanged. See [R10 data contract](docs/OPENBLUE_R10.md).
