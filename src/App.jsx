@@ -3,6 +3,12 @@ import BlueprintCanvas from './BlueprintCanvas.jsx';
 import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
+import PathwayDesignPanel from './PathwayDesignPanel.jsx';
+import {
+  emptyPathways,loadPathways,savePathways,createPathwayProposal,
+  upsertPathway,removePathway,evaluatePathwayDocument,
+  parsePathways,serializePathways,evaluatePathway,
+} from './pathwayProposals.js';
 import {analyzeNetworkPlan,networkReviewSnapshot} from './networkPlanning.js';
 import { analyzeRooms } from './roomAnalysis.js';
 import { analyzeConnectedRooms } from './connectedRooms.js';
@@ -37,6 +43,7 @@ const TOOLS = [
   { id: 'wall', key: 'W', label: 'Wall', icon: '╱' },
   { id: 'measure', key: 'M', label: 'Measure', icon: '⌁' },
   { id: 'pan', key: 'H', label: 'Pan', icon: '✥' },
+  { id: 'pathway', key: 'P', label: 'Pathway', icon: '⌁' },
   { id: 'door', key: 'D', label: 'Door', icon: 'D' },
   { id: 'window', key: 'I', label: 'Window', icon: 'W' },
   { id: 'outlet', key: 'O', label: 'Outlet', icon: 'O' },
@@ -80,6 +87,10 @@ export default function App() {
   const [analysisMode, setAnalysisMode] = useState('connected');
   const [networkHubId,setNetworkHubId] = useState('');
   const [showNetworkGuides,setShowNetworkGuides] = useState(true);
+  const [pathways,setPathways] = useState(()=>loadPathways().doc);
+  const [pathwayTargetId,setPathwayTargetId] = useState('');
+  const [routeDraft,setRouteDraft] = useState(null);
+  const pathwayImportRef=useRef(null);
   const [roomAnnotations, setRoomAnnotations] = useState(() => loadRoomAnnotations().doc);
   const [selectedRoomKey, setSelectedRoomKey] = useState(null);
   const annotationImportRef = useRef(null);
@@ -140,6 +151,13 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [roomAnnotations]);
 
+  useEffect(()=>{
+    const timer=setTimeout(()=>{
+      try{savePathways(pathways)}catch(error){setNotice('Pathway proposals not saved: '+error.message+'. Export a backup.')}
+    },260);
+    return ()=>clearTimeout(timer);
+  },[pathways]);
+
   useEffect(() => {
     const onKey = (event) => {
       if (evieProposal) return;
@@ -184,6 +202,8 @@ export default function App() {
   const networkReport = useMemo(() => analyzeNetworkPlan(project,labeledAnalysis,roomAnnotations.entries,networkHubId),
     [project,labeledAnalysis,roomAnnotations,networkHubId]);
   const unmatchedAnnotations = Object.keys(roomAnnotations.entries).filter(k => !validRoomKeys.has(k)).length;
+  const evaluatedRoutes=useMemo(()=>evaluatePathwayDocument(project,pathways),[project,pathways]);
+  const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
   },[validRoomKeys]);
@@ -200,7 +220,71 @@ export default function App() {
     try { setRoomAnnotations(current => updateRoomAnnotation(current,key,patch)); }
     catch(error){setNotice('Room note rejected: ' + error.message);}
   };
+  const cancelRouteDraft=()=>{
+    setRouteDraft(null);
+    setActiveTool('select');
+  };
+  const beginRouteTrace=(dropId)=>{
+    if(!traceHub || !dropId || traceHub===dropId){
+      setNotice('Select a hub and a different destination network symbol first.');return;
+    }
+    const previous=pathways.routes.find(r=>r.hubId===traceHub&&r.dropId===dropId);
+    const waypoints=previous ? previous.waypointsM.map(p=>({
+      x:p.x/(project.metadata.units==='ft'?0.3048:1),
+      y:p.y/(project.metadata.units==='ft'?0.3048:1),
+    })) : [];
+    setRouteDraft({hubId:traceHub,dropId,waypoints,label:previous?.label||''});
+    setPathwayTargetId(dropId);
+    setShowNetworkGuides(false);
+    setActiveTool('pathway');
+    setNotice('Click the blueprint for each intermediate waypoint. Save explicitly in Pathway Designer; Esc cancels.');
+  };
+  const appendWaypoint=point=>{
+    setRouteDraft(current=>{
+      if(!current||current.waypoints.length>=60)return current;
+      return {...current,waypoints:[...current.waypoints,point]};
+    });
+  };
+  const saveRouteDraft=()=>{
+    if(!routeDraft)return;
+    try{
+      const route=createPathwayProposal(project,routeDraft.hubId,routeDraft.dropId,routeDraft.waypoints,routeDraft.label);
+      const result=evaluatePathway(project,route);
+      setPathways(current=>upsertPathway(current,route));
+      setRouteDraft(null);
+      setActiveTool('select');
+      setNotice(result.status==='clear'
+        ? 'Proposed path saved locally. No wall-centerline hits detected, but field verification is still required.'
+        : 'Proposal saved with wall-crossing or stale-anchor warnings. It is NOT an approved route.');
+    }catch(error){setNotice('Pathway not saved: '+error.message);}
+  };
+  const exportPathwayNotes=()=>{
+    try {
+      downloadText(safeFilename(project.metadata.title,'pathways.json'),serializePathways(pathways),'application/json');
+      setNotice('Unapproved pathway proposals exported as a separate JSON backup.');
+    }catch(error){setNotice('Could not export pathway proposals: '+error.message);}
+  };
+  const importPathwayNotes=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(file.size>500000)throw Error('Pathways file exceeds 500 KB.');
+      const imported=parsePathways(await file.text());
+      const valid=imported.routes.filter(route=>{
+        const evaluated=evaluatePathway(project,route);
+        return evaluated.status!=='stale';
+      });
+      if(!valid.length)throw Error('No proposals match existing network endpoints and coordinates.');
+      if(!window.confirm(`Import ${valid.length} anchored pathway proposal(s)? This replaces the local pathway sidecar without changing blueprint geometry.`))return;
+      setPathways({schemaVersion:imported.schemaVersion,routes:valid});
+      setRouteDraft(null);setActiveTool('select');
+      setNotice(`Imported ${valid.length} non-stale operator proposals; wall warnings require separate review.`);
+    }catch(error){setNotice('Pathway import rejected: '+error.message);}
+  };
   const replaceRoomNotesForNewPlan = () => {
+    setPathways(emptyPathways());
+    setRouteDraft(null);
+    setPathwayTargetId('');
     setNetworkHubId('');
     setRoomAnnotations(emptyAnnotations());
     setSelectedRoomKey(null);
@@ -375,7 +459,7 @@ export default function App() {
               className={activeTool === tool.id ? 'tool-button active' : 'tool-button'}
               aria-pressed={activeTool === tool.id}
               title={`${tool.label} (${tool.key})`}
-              onClick={() => setActiveTool(tool.id)}
+              onClick={() => { if (routeDraft && tool.id !== 'pathway') setRouteDraft(null); setActiveTool(tool.id); }}
             >
               <span className="tool-icon">{tool.icon}</span>
               <span>{tool.label}</span>
@@ -402,7 +486,11 @@ export default function App() {
             selectedRoomKey={selectedRoomKey}
             onSelectRoom={selectRoom}
             roomAnnotations={roomAnnotations.entries}
-            networkGuide={networkHubId && showNetworkGuides ? networkReport : null}
+            networkGuide={networkHubId && showNetworkGuides && !routeDraft ? networkReport : null}
+            pathwayRoutes={evaluatedRoutes}
+            routeDraft={routeDraft}
+            onRouteWaypoint={appendWaypoint}
+            onCancelRouteDraft={cancelRouteDraft}
             onSelect={(id)=>{setSelectedId(id);if(id)setSelectedRoomKey(null);}}
             onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
@@ -500,6 +588,21 @@ export default function App() {
               onSelectDrop={id=>{setActiveTool('select');setSelectedRoomKey(null);setSelectedId(id);}}
               onExport={exportNetworkSnapshot} selectedId={selectedId}
             />
+
+            <PathwayDesignPanel
+              report={networkReport} routes={evaluatedRoutes} draft={routeDraft}
+              targetId={pathwayTargetId} onTargetChange={setPathwayTargetId}
+              onBeginTrace={beginRouteTrace} onAddWaypointBack={()=>setRouteDraft(current=>current?{...current,waypoints:current.waypoints.slice(0,-1)}:current)}
+              onUpdateDraftLabel={label=>setRouteDraft(current=>current?{...current,label}:null)}
+              onSaveDraft={saveRouteDraft} onCancelDraft={cancelRouteDraft}
+              onRemoveRoute={(hubId,dropId)=>{
+                setPathways(current=>removePathway(current,hubId,dropId));
+                setNotice('Operator pathway proposal removed.');
+              }}
+              onExport={exportPathwayNotes}
+              onImport={()=>pathwayImportRef.current?.click()}
+            />
+            <input ref={pathwayImportRef} type="file" hidden accept="application/json,.json" onChange={importPathwayNotes} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

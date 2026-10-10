@@ -34,6 +34,10 @@ export default function BlueprintCanvas({
   showRooms,
   roomAnnotations,
   networkGuide,
+  pathwayRoutes,
+  routeDraft,
+  onRouteWaypoint,
+  onCancelRouteDraft,
   selectedRoomKey,
   onSelectRoom,
   onSelect,
@@ -97,6 +101,7 @@ export default function BlueprintCanvas({
   useEffect(() => {
     const cancel = (event) => {
       if (event.key === 'Escape') {
+        if (activeTool === 'pathway' && routeDraft) onCancelRouteDraft?.();
         setDraftStart(null);
         setDraggingSymbol(null);
         setMeasureStart(null);
@@ -107,7 +112,7 @@ export default function BlueprintCanvas({
     };
     window.addEventListener('keydown', cancel);
     return () => window.removeEventListener('keydown', cancel);
-  }, []);
+  }, [onCancelRouteDraft, activeTool, routeDraft]);
 
   const displayedWalls = useMemo(() => project.walls.map((wall) => {
     if (draggingEndpoint?.id !== wall.id) return wall;
@@ -128,6 +133,10 @@ export default function BlueprintCanvas({
       return;
     }
     const point = pointerToModel(event);
+    if(activeTool === 'pathway'){
+      if(routeDraft)onRouteWaypoint(point);
+      return;
+    }
     if (activeTool === 'select') {
       onSelect(null);
       return;
@@ -262,7 +271,7 @@ export default function BlueprintCanvas({
                   className="hit-line"
                   onPointerDown={(event) => {
                     event.stopPropagation();
-                    if (activeTool === 'measure' || activeTool === 'pan') handleBackgroundPointerDown(event);
+                    if (activeTool === 'measure' || activeTool === 'pan' || activeTool==='pathway') handleBackgroundPointerDown(event);
                     else onSelect(wall.id);
                   }}
                 />
@@ -293,6 +302,20 @@ export default function BlueprintCanvas({
           })}
         </g>
 
+        <g className="pathway-proposals-layer" pointerEvents="none" aria-hidden="true">
+          {(pathwayRoutes||[]).filter(item=>item.points?.length>1).map(route=>(
+            <polyline key={route.hubId+'-'+route.dropId}
+              className={route.status==='clear'?'pathway-clear':'pathway-warning'}
+              points={route.points.map(p=>{const s=toScreen(p);return s.x+','+s.y;}).join(' ')} />
+          ))}
+          {routeDraft && (() => {
+            const hub=project.symbols.find(s=>s.id===routeDraft.hubId&&s.type==='network');
+            const drop=project.symbols.find(s=>s.id===routeDraft.dropId&&s.type==='network');
+            if(!hub||!drop)return null;
+            const coords=[hub,...routeDraft.waypoints,drop];
+            return <polyline className="pathway-draft" points={coords.map(p=>{const s=toScreen(p);return s.x+','+s.y;}).join(' ')} />;
+          })()}
+        </g>
         {networkGuide && networkGuide.hubId && (
           <g className="network-guide-layer" pointerEvents="none" aria-hidden="true">
             {networkGuide.drops.filter(drop=>!drop.isHub).map(drop=>{
@@ -317,7 +340,7 @@ export default function BlueprintCanvas({
                 aria-label={meta.label}
                 onPointerDown={(event) => {
                   event.stopPropagation();
-                  if (activeTool === 'measure' || activeTool === 'pan') { handleBackgroundPointerDown(event); return; }
+                  if (activeTool === 'measure' || activeTool === 'pan' || activeTool==='pathway') { handleBackgroundPointerDown(event); return; }
                   onSelect(symbol.id);
                   if (activeTool === 'select') {
                     setDraggingSymbol(symbol.id);
@@ -373,7 +396,7 @@ export default function BlueprintCanvas({
       </div>
       <div className="canvas-corner-note">
         <span className="pulse-dot" />
-        {activeTool === 'measure' ? (measureEnd ? `Measured ${formatMeasurement(measurement, project.metadata.units)} · click again to start over` : measureStart ? 'Click end point · Esc to cancel' : 'Measure · click first point') : activeTool === 'pan' ? 'Pan · drag canvas to move the view' : draggingEndpoint ? 'Dragging wall endpoint · release to commit once' : draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
+        {activeTool === 'pathway' ? 'Proposed route · click to add waypoint · save in sidebar · Esc cancels' : activeTool === 'measure' ? (measureEnd ? `Measured ${formatMeasurement(measurement, project.metadata.units)} · click again to start over` : measureStart ? 'Click end point · Esc to cancel' : 'Measure · click first point') : activeTool === 'pan' ? 'Pan · drag canvas to move the view' : draggingEndpoint ? 'Dragging wall endpoint · release to commit once' : draftStart ? 'Wall chain active · click next point · Esc to finish' : 'Grid snap active'}
       </div>
     </div>
   );
