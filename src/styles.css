@@ -536,3 +536,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .timeline-diff-section>strong{color:#def4ff}
 .timeline-diff-section>span{font:10px Consolas,monospace;color:#a8deec}
 .timeline-diff-section>small{grid-column:1 / -1;color:var(--muted);font:9px Consolas,monospace;overflow-wrap:anywhere}
+
+/* R20: explicit in-memory recovery checks, not a field certificate. */
+.recovery-drill-panel{display:grid;gap:11px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+.recovery-drill-panel .room-panel-heading h3{font-size:12px;margin:3px 0 0}
+.recovery-drill-source{display:grid;gap:6px;font-size:10px;color:#a4cbdc}
+.recovery-drill-source select{width:100%;min-width:0;padding:9px;background:#071525;color:#eaf9ff;border:1px solid var(--line)}
+.recovery-drill-panel>button{justify-self:start}
+.recovery-drill-result{display:grid;gap:8px;padding:11px;border:1px solid rgba(247,184,75,.5);border-left:3px solid var(--amber);background:rgba(247,184,75,.045);overflow-wrap:anywhere}
+.recovery-drill-result.passed{border-color:rgba(167,243,208,.3);border-left-color:#a7f3d0;background:rgba(167,243,208,.04)}
+.recovery-drill-result .rack-row-title strong{font-size:11px;color:#e4f8ff}
+.recovery-drill-result .rack-row-title span{font:9px Consolas,monospace;color:#a2c7d6}
+.recovery-drill-result>span{font-size:10px;color:#c6dfeb;line-height:1.55}
+.recovery-drill-checks{display:grid;gap:5px}
+.recovery-drill-checks>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;padding:8px;border:1px solid var(--line)}
+.recovery-drill-checks strong{font:10px Consolas,monospace;color:#d0edf8}
+.recovery-drill-checks span{font:10px Consolas,monospace;color:#a6f0d6}
+.recovery-drill-result.failed .recovery-drill-checks span{color:var(--amber)}
+.recovery-drill-checks small{grid-column:1/-1;font-size:10px;color:#92b6c9}
+.recovery-drill-result .pathway-actions{display:flex;flex-wrap:wrap;gap:7px}
