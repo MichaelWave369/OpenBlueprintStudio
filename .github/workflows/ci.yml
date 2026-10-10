@@ -17,12 +17,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      # Gate on high+ vulnerabilities in shipped dependencies. This does not
-      # claim that the dev/build toolchain is risk-free.
       - name: Production dependency high-severity audit
         run: npm audit --omit=dev --audit-level=high
-      # Explicitly surface known dev/build advisories without papering over
-      # them by pretending the complete dependency tree is vulnerability-free.
-      - name: Full dependency advisory visibility (nonblocking)
-        continue-on-error: true
-        run: npm audit --audit-level=high
+      # R21: audit all dependencies, including developer/build tools.
+      # Any npm advisory, even LOW, now fails CI. No continue-on-error.
+      - name: Full dependency audit (blocking)
+        run: npm audit --audit-level=low
