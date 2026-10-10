@@ -14,6 +14,8 @@ import WorkspaceHome,{WorkspaceNavigator} from './WorkspaceHome.jsx';
 import ProjectVaultPanel from './ProjectVaultPanel.jsx';
 import WorkspaceAuditPanel from './WorkspaceAuditPanel.jsx';
 import ProjectTimelinePanel from './ProjectTimelinePanel.jsx';
+import RecoveryDrillPanel from './RecoveryDrillPanel.jsx';
+import {drillWorkspaceRecovery,serializeRecoveryDrill} from './recoveryDrill.js';
 import {
   TIMELINE_STORAGE_KEY,MAX_CHECKPOINTS,MAX_CHECKPOINT_BYTES,emptyTimeline,loadTimeline,saveTimeline,
   putCheckpoint,dropCheckpoint,parseCheckpointBackup,exportCheckpoint,
@@ -129,6 +131,8 @@ export default function App() {
   const [timelineError,setTimelineError]=useState(initialTimeline.error);
   const [timelineSelectedId,setTimelineSelectedId]=useState('');
   const [timelineCompareFrom,setTimelineCompareFrom]=useState('active');
+  const [recoveryDrillSource,setRecoveryDrillSource]=useState('active');
+  const [recoveryDrillReport,setRecoveryDrillReport]=useState(null);
   const timelineImportRef=useRef(null);
   const [projectVault,setProjectVault]=useState(initialVault.doc);
   const [projectVaultError,setProjectVaultError]=useState(initialVault.error);
@@ -548,6 +552,35 @@ export default function App() {
     preferences:{analysisMode,networkHubId},
   });
   const currentVaultDocuments=()=>createWorkspaceSnapshot(currentVaultRaw());
+  const runRecoveryDrill=()=>{
+    try{
+      let snapshot,label,source='active';
+      if(recoveryDrillSource==='active'){
+        snapshot=currentVaultRaw();label=project.metadata.title;
+      }else if(recoveryDrillSource.startsWith('checkpoint:')){
+        const selected=timeline.checkpoints.find(x=>x.id===recoveryDrillSource.slice(11));
+        if(!selected)throw Error('Selected checkpoint is no longer in the timeline.');
+        snapshot=selected.workspace;label=selected.label;source='checkpoint';
+      }else if(recoveryDrillSource.startsWith('vault:')){
+        const selected=projectVault.slots.find(x=>x.id===recoveryDrillSource.slice(6));
+        if(!selected)throw Error('Selected project vault slot no longer exists.');
+        snapshot=selected.workspace;label=selected.name;source='project-vault';
+      }else throw Error('Select an available project source.');
+      const report=drillWorkspaceRecovery(snapshot,{label,source});
+      setRecoveryDrillReport(report);
+      setNotice(report.status==='SANDBOX_PASS'?
+        'R20 sandbox rehearsal passed. No live localStorage records or field devices were touched.':
+        'R20 sandbox rehearsal failed. Inspect the checklist and preserve backups.');
+    }catch(error){setNotice('Sandbox recovery drill could not run: '+error.message);}
+  };
+  const exportRecoveryDrill=()=>{
+    if(!recoveryDrillReport)return;
+    try{
+      downloadText(safeFilename(recoveryDrillReport.label,'sandbox-recovery-drill.json'),
+        serializeRecoveryDrill(recoveryDrillReport),'application/json');
+      setNotice('Read-only sandbox recovery receipt exported. Not a certified restoration.');
+    }catch(error){setNotice('Recovery drill receipt export failed: '+error.message);}
+  };
   const timelineComparison=useMemo(()=>{
     if(timelineError||!timelineSelectedId)return {report:null,error:null};
     const to=timeline.checkpoints.find(x=>x.id===timelineSelectedId);
@@ -1241,6 +1274,14 @@ export default function App() {
               />
               <input ref={timelineImportRef} type="file" accept="application/json,.json" hidden
                 onChange={importTimelineBackup} />
+              <RecoveryDrillPanel
+                checkpoints={timelineError?[]:timeline.checkpoints}
+                vaultSlots={projectVaultError?[]:projectVault.slots}
+                selectedSource={recoveryDrillSource}
+                onSelectSource={value=>{setRecoveryDrillSource(value);setRecoveryDrillReport(null);}}
+                report={recoveryDrillReport}
+                onRun={runRecoveryDrill} onExport={exportRecoveryDrill}
+              />
               <WorkspaceAuditPanel
                 report={workspaceAudit} scope={workspaceAuditScope}
                 slots={projectVaultError?[]:projectVault.slots}
