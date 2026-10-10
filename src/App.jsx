@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BlueprintCanvas from './BlueprintCanvas.jsx';
+import KeyboardWallEntry from './KeyboardWallEntry.jsx';
 import EvieProposalReview from './EvieProposalReview.jsx';
 import RoomAnalysisPanel from './RoomAnalysisPanel.jsx';
 import NetworkPlanningPanel from './NetworkPlanningPanel.jsx';
@@ -70,6 +71,7 @@ import {
   addWall,
   createEmptyProject,
   createSampleProject,
+  createWall,
   convertProjectUnits,
   deleteElement,
   findElement,
@@ -1146,6 +1148,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#openblue-workspace-nav">Skip to workspaces</a>
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>
@@ -1196,7 +1199,7 @@ export default function App() {
           <button className="tool-button compact" onClick={redo} disabled={!history.future.length} title="Redo (Ctrl+Y)"><span className="tool-icon">↷</span><span>Redo</span></button>
         </aside>
 
-        <section className="editor-column" aria-label="2D editor">
+        <section className="editor-column" id="openblue-2d-editor" aria-label="2D editor">
           <div className="panel-heading">
             <div><span className="panel-index">01</span><h1>Blueprint</h1></div>
             <span className="panel-badge">2D · {project.metadata.units}</span>
@@ -1232,6 +1235,14 @@ export default function App() {
             }}
             onMoveSymbol={(id, point) => commit((current) => updateElement(current, id, point))}
             onPointerCoordinate={setPointer}
+          />
+          <KeyboardWallEntry grid={project.metadata.grid} units={project.metadata.units}
+            onCreateWall={wall=>{
+              commit(current=>addWall(current,wall),'Accessible wall added using coordinate entry. Undo is available.');
+              setSelectedId(wall.id);
+              setActiveWorkspace('design');
+              setActiveTool('select');
+            }}
           />
         </section>
 

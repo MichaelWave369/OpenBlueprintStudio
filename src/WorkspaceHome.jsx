@@ -2,7 +2,7 @@ import {WORKSPACE_SECTIONS} from './workspaceModel.js';
 
 /** R16/R17: operator navigation; summary is read-only and never implies certification. */
 export function WorkspaceNavigator({current,onChange}){
- return <nav className="workspace-nav" aria-label="OpenBlue workspaces">
+ return <nav id="openblue-workspace-nav" tabIndex={-1} className="workspace-nav" aria-label="OpenBlue workspaces">
    {WORKSPACE_SECTIONS.map(section=><button type="button" key={section.id}
      aria-current={current===section.id?'page':undefined}
      className={current===section.id?'workspace-nav-active':''}
