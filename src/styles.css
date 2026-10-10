@@ -484,3 +484,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .vault-warning strong{font-size:11px;color:var(--amber)}
 .vault-warning p{font-size:10px;color:var(--muted);margin:0;line-height:1.6}
 .vault-warning button{justify-self:start}
+
+/* R18 recoverability audit: read-only; warning state is not construction approval. */
+.workspace-audit-panel{display:grid;gap:11px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+.workspace-audit-panel .room-panel-heading h3{font-size:12px;margin:3px 0 0}
+.workspace-audit-saved{display:grid;gap:7px}
+.workspace-audit-saved>strong{font-size:11px;color:#d7f1ff}
+.workspace-audit-slot{display:flex;align-items:center;justify-content:space-between;gap:9px;border:1px solid var(--line);padding:8px;font-size:10px;color:#bbd3e4;overflow-wrap:anywhere}
+.workspace-audit-slot>span{min-width:0;flex:1}
+.workspace-audit-slot>button{flex:none}
+.workspace-audit-results{display:grid;gap:9px;padding:10px;border:1px solid rgba(87,215,255,.32);background:rgba(87,215,255,.035);overflow-wrap:anywhere}
+.workspace-audit-results .rack-row-title>strong{font-size:11px;color:#e5f8ff}
+.workspace-audit-results .rack-row-title>span{font:9px Consolas,monospace;color:var(--amber)}
+.workspace-audit-results>span{font-size:10px;color:#b7d4e3;line-height:1.55}
+.workspace-audit-docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.workspace-audit-docs>span{font:9px Consolas,monospace;padding:7px;background:#0a1b2a;border:1px solid var(--line);overflow-wrap:anywhere;color:#b1d9e6}
+.workspace-audit-section-heading{font-size:11px;color:#e3faff}
+.workspace-audit-results>p{font-size:10px;color:var(--muted);line-height:1.65;margin:0}
+.workspace-audit-results>button{justify-self:start}
+.workspace-audit-findings{display:grid;gap:7px;max-height:410px;overflow:auto}
+.workspace-audit-finding{display:grid;gap:5px;padding:9px;border:1px solid var(--line);border-left:3px solid #718ea2}
+.workspace-audit-finding.review{border-left-color:var(--amber)}
+.workspace-audit-finding>strong{font:700 10px Consolas,monospace;color:#cfeefb}
+.workspace-audit-finding p{font-size:10px;color:#c0d6e1;line-height:1.55;margin:0}
+.workspace-audit-finding small{font:9px Consolas,monospace;color:var(--muted);overflow-wrap:anywhere}
