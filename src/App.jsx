@@ -13,6 +13,12 @@ import FieldHandoffPanel from './FieldHandoffPanel.jsx';
 import WorkspaceHome,{WorkspaceNavigator} from './WorkspaceHome.jsx';
 import ProjectVaultPanel from './ProjectVaultPanel.jsx';
 import WorkspaceAuditPanel from './WorkspaceAuditPanel.jsx';
+import ProjectTimelinePanel from './ProjectTimelinePanel.jsx';
+import {
+  TIMELINE_STORAGE_KEY,MAX_CHECKPOINTS,MAX_CHECKPOINT_BYTES,emptyTimeline,loadTimeline,saveTimeline,
+  putCheckpoint,dropCheckpoint,parseCheckpointBackup,exportCheckpoint,
+  compareWorkspaceVersions,exportCheckpointComparison,
+} from './projectTimeline.js';
 import {auditWorkspace,exportWorkspaceAudit} from './workspaceAudit.js';
 import {
   VAULT_KEY,MAX_SNAPSHOT_BYTES,emptyProjectVault,loadProjectVault,saveProjectVault,
@@ -118,6 +124,12 @@ export default function App() {
   const start = useMemo(initialProject, []);
   const initialPreferences=useMemo(()=>loadActivePreferences(),[]);
   const initialVault=useMemo(()=>loadProjectVault(),[]);
+  const initialTimeline=useMemo(()=>loadTimeline(),[]);
+  const [timeline,setTimeline]=useState(initialTimeline.doc);
+  const [timelineError,setTimelineError]=useState(initialTimeline.error);
+  const [timelineSelectedId,setTimelineSelectedId]=useState('');
+  const [timelineCompareFrom,setTimelineCompareFrom]=useState('active');
+  const timelineImportRef=useRef(null);
   const [projectVault,setProjectVault]=useState(initialVault.doc);
   const [projectVaultError,setProjectVaultError]=useState(initialVault.error);
   const [workspaceAudit,setWorkspaceAudit]=useState(null);
@@ -536,6 +548,136 @@ export default function App() {
     preferences:{analysisMode,networkHubId},
   });
   const currentVaultDocuments=()=>createWorkspaceSnapshot(currentVaultRaw());
+  const timelineComparison=useMemo(()=>{
+    if(timelineError||!timelineSelectedId)return {report:null,error:null};
+    const to=timeline.checkpoints.find(x=>x.id===timelineSelectedId);
+    if(!to)return {report:null,error:null};
+    try{
+      const from=timelineCompareFrom==='active'?{
+        project,roomAnnotations,pathways,rackPlan,logicalTopology,fieldEvidence:evidenceLedger,
+        preferences:{analysisMode,networkHubId},
+      }:timeline.checkpoints.find(x=>x.id===timelineCompareFrom)?.workspace;
+      if(!from)return {report:null,error:'Comparison source is missing.'};
+      return {report:compareWorkspaceVersions(from,to.workspace,{
+        fromLabel:timelineCompareFrom==='active'?'Current active project':
+          timeline.checkpoints.find(x=>x.id===timelineCompareFrom)?.label||'Selected checkpoint',
+        toLabel:to.label,
+      }),error:null};
+    }catch(error){return {report:null,error:error.message};}
+  },[timeline,timelineError,timelineSelectedId,timelineCompareFrom,project,roomAnnotations,
+    pathways,rackPlan,logicalTopology,evidenceLedger,analysisMode,networkHubId]);
+
+  const createTimelineCheckpoint=label=>{
+    try{
+      if(timelineError)throw Error('Timeline is unreadable; export the original bytes before resetting.');
+      const entry={id:makeId('checkpoint'),label,workspace:currentVaultDocuments()};
+      const next=putCheckpoint(timeline,entry);
+      saveTimeline(next);
+      setTimeline(next);setTimelineSelectedId(entry.id);
+      setNotice('Complete project checkpoint saved locally. Export an external backup before major changes.');
+      return true;
+    }catch(error){setNotice('Checkpoint not saved: '+error.message);return false;}
+  };
+  const exportTimelineCheckpoint=id=>{
+    const item=timeline.checkpoints.find(x=>x.id===id);
+    if(!item)return;
+    if(!window.confirm('Download a FULL checkpoint including site geometry, technician names and field evidence references? Store the file privately.'))return;
+    try{
+      downloadText(safeFilename(item.label,'openblue-checkpoint.json'),
+        exportCheckpoint(item),'application/json');
+      setNotice('Complete checkpoint exported. Contents include human testimony, not certified field measurements.');
+    }catch(error){setNotice('Checkpoint export failed: '+error.message);}
+  };
+  const deleteTimelineCheckpoint=id=>{
+    const item=timeline.checkpoints.find(x=>x.id===id);
+    if(!item||timelineError)return;
+    if(!window.confirm(`Delete checkpoint "${item.label}" from this browser? Export JSON first if this is a valuable recovery point.`))return;
+    try{
+      const next=dropCheckpoint(timeline,id);
+      saveTimeline(next);
+      setTimeline(next);
+      if(timelineSelectedId===id)setTimelineSelectedId('');
+      if(timelineCompareFrom===id)setTimelineCompareFrom('active');
+      setNotice('Checkpoint removed from local timeline only. Active project was not changed.');
+    }catch(error){setNotice('Checkpoint deletion failed: '+error.message);}
+  };
+  const importTimelineBackup=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(timelineError)throw Error('Saved timeline is unreadable.');
+      if(file.size>MAX_CHECKPOINT_BYTES+5000)throw Error('Checkpoint backup exceeds 1.5 MB limit.');
+      const incoming=parseCheckpointBackup(await file.text());
+      if(!window.confirm(`Import "${incoming.label}" into the timeline ONLY? It may be from a different project. The active drawing and evidence remain unchanged.`))return;
+      const entry={...incoming,id:makeId('checkpoint-import'),label:('Imported · '+incoming.label).slice(0,100),createdAt:new Date().toISOString()};
+      const next=putCheckpoint(timeline,entry);
+      saveTimeline(next);
+      setTimeline(next);setTimelineSelectedId(entry.id);
+      setNotice('Checkpoint backup inspected and added to local history only, not restored.');
+    }catch(error){setNotice('Checkpoint import rejected: '+error.message);}
+  };
+  const exportTimelineComparison=()=>{
+    if(!timelineComparison.report)return;
+    try{
+      downloadText('openblue-project-change-review.json',
+        exportCheckpointComparison(timelineComparison.report),'application/json');
+      setNotice('Read-only record ID comparison exported. No project records were changed.');
+    }catch(error){setNotice('Comparison export rejected: '+error.message);}
+  };
+  const recoverTimelineCheckpoint=id=>{
+    if(timelineError)return;
+    const item=timeline.checkpoints.find(x=>x.id===id);
+    if(!item)return;
+    if(evieProposal){setNotice('Resolve the staged EVIE CAD proposal before recovering a checkpoint.');return;}
+    if(routeDraft){setNotice('Save or cancel the R9 route sketch before recovering a checkpoint.');return;}
+    if(timeline.checkpoints.length>=MAX_CHECKPOINTS){
+      setNotice('Recovery blocked: timeline has no free space for a mandatory PRE-recovery safety checkpoint. Export and delete an old checkpoint first.');
+      return;
+    }
+    try{
+      const current=currentVaultDocuments();
+      const preflight=auditWorkspace(item.workspace,{source:'R19 checkpoint',name:item.label});
+      if(!preflight.canRestore){
+        setNotice('Recovery BLOCKED by integrity preflight. Preserve checkpoint and investigate its six documents.');
+        return;
+      }
+      const difference=compareWorkspaceVersions(current,item.workspace,{
+        fromLabel:'Current active',toLabel:item.label,
+      });
+      if(difference.noChanges){setNotice('The selected checkpoint matches the current active record set; no recovery needed.');return;}
+      if(preflight.status==='RESTORABLE_WITH_FINDINGS'&&
+        !window.confirm(`R18 preflight found ${preflight.counts.reviewFindings} consistency issues in "${item.label}". They will NOT be repaired or certified. Continue to recovery confirmation?`))return;
+      if(!window.confirm(`Recover "${item.label}"? This will replace ALL SIX active documents and room/hub preferences. ${difference.totalChanges} record difference(s) detected. The current active state must first be saved as a separate pre-recovery checkpoint. Different project titles or lost evidence receipts are possible. No merge is performed.`))return;
+      const backup=putCheckpoint(timeline,{
+        id:makeId('pre-recovery'),label:('Before recovery · '+project.metadata.title).slice(0,100),
+        workspace:current,
+      });
+      saveTimeline(backup);
+      setTimeline(backup);
+      switchingRef.current=true;
+      try{restoreWorkspaceInStorage(item.workspace);}
+      catch(error){switchingRef.current=false;throw error;}
+      window.location.reload();
+    }catch(error){setNotice('Checkpoint recovery stopped: '+error.message);}
+  };
+  const downloadUnreadableTimeline=()=>{
+    try{
+      const original=localStorage.getItem(TIMELINE_STORAGE_KEY);
+      if(!original)throw Error('No unreadable original timeline exists.');
+      if(!window.confirm('Export original possibly malformed timeline bytes, including private project plans and human evidence? No recovery or repair will be attempted.'))return;
+      downloadText('openblue-unreadable-timeline-original.json',original,'application/json');
+      setNotice('Unreadable timeline preserved verbatim; original browser entry unchanged.');
+    }catch(error){setNotice('Unable to export raw timeline: '+error.message);}
+  };
+  const resetUnreadableTimeline=()=>{
+    if(!window.confirm('Permanently reset the unreadable local timeline? Saved checkpoint bytes can be lost. Download the original first. Active design and R17 project library are not changed.'))return;
+    try{
+      localStorage.removeItem(TIMELINE_STORAGE_KEY);
+      setTimeline(emptyTimeline());setTimelineError(null);
+      setTimelineSelectedId('');setTimelineCompareFrom('active');
+      setNotice('Damaged timeline explicitly cleared. Active CAD, R17 vault and evidence are untouched.');
+    }catch(error){setNotice('Timeline reset failed: '+error.message);}
+  };
   const runActiveWorkspaceAudit=()=>{
     const audit=auditWorkspace(currentVaultRaw(),{source:'active',name:project.metadata.title});
     setWorkspaceAudit(audit);setWorkspaceAuditScope('Active project');
@@ -1086,6 +1228,19 @@ export default function App() {
               />
               <input ref={vaultImportRef} type="file" accept="application/json,.json" hidden
                 onChange={importVaultBackup} />
+              <ProjectTimelinePanel
+                timeline={timeline} error={timelineError} activeTitle={project.metadata.title}
+                selectedId={timelineSelectedId} onSelect={setTimelineSelectedId}
+                compareSource={timelineCompareFrom} onCompareSource={setTimelineCompareFrom}
+                comparison={timelineComparison.report} comparisonError={timelineComparison.error}
+                onCreate={createTimelineCheckpoint}
+                onRecover={recoverTimelineCheckpoint} onDelete={deleteTimelineCheckpoint}
+                onExport={exportTimelineCheckpoint} onImport={()=>timelineImportRef.current?.click()}
+                onExportComparison={exportTimelineComparison}
+                onDownloadRaw={downloadUnreadableTimeline} onReset={resetUnreadableTimeline}
+              />
+              <input ref={timelineImportRef} type="file" accept="application/json,.json" hidden
+                onChange={importTimelineBackup} />
               <WorkspaceAuditPanel
                 report={workspaceAudit} scope={workspaceAuditScope}
                 slots={projectVaultError?[]:projectVault.slots}

@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R19 Project Timeline & Recovery Checkpoints:** explicit local full-workspace checkpoints, bounded four-entry history with off-browser JSON backups, read-only ID-level version comparison, and governed restore with mandatory pre-recovery safety checkpoint, R18 audit and R17 rollback-on-write-failure. No automatic changes, merges, trusted timestamps or field certification.
 - **R18 recovery and integrity audit:** schema-validate all six documents and reconcile saved room, pathway, rack, topology and human-field-evidence relationships before opening a snapshot. Pure read-only findings and JSON reports; block malformed restores, explicitly acknowledge inconsistent-but-loadable snapshots, and allow verbatim export of an unreadable raw browser vault before reset.
 - **R17 multi-project local vault:** save up to six full, versioned project snapshots including CAD, room annotations, pathways, racks, switches, R13 evidence and room/hub preferences. Explicit save/overwrite/delete, individual JSON backup/import, and confirmed restore with pre-switch safety snapshot, guarded active-storage rollback and reload. Browser storage is not cloud backup.
 - **R16 focused workspace navigation:** five inspector workspaces (Overview, Design, Network, Field, Handoff) replace a giant all-tools stack. An overview summarizes the one current local project and its governed sidecars. Session-only handoff browser indexes up to 12 validated or rejected JSON summaries with no raw file retention, import, or automatic approval.
@@ -189,3 +190,21 @@ The Overview workspace now includes **Project Recovery & Integrity**, a read-onl
 - If the R17 vault itself cannot be parsed, **Download original unreadable vault** allows verbatim operator-owned preservation before the preexisting explicit reset action; it does not fix or trust the damaged data.
 
 On Open, the R18 preflight runs automatically *before* R17 takes its independent pre-switch snapshot and performs its guarded local-storage restoration. A valid-but-inconsistent snapshot requires additional user confirmation; corrupted schemas are blocked. See [R18 restore preflight contract](docs/OPENBLUE_R18.md).
+
+## R19: Project Timeline & Recovery Checkpoints
+
+The Overview workspace offers an explicit **Project Timeline & Recovery** panel. Each local checkpoint stores the same six mutable source documents and per-project room analysis/network hub preferences as an R17 complete workspace. The timeline deliberately captures **manual save points only**, not every UI edit, and does not create a fake cryptographic history.
+
+Users can compare the active design or any checkpoint against another saved checkpoint. The `openblue.project-diff/1` review-only result reports ID-level additions, removals and changed records across CAD walls/symbols, room annotations, R9 operator routes, R10 racks/allocations, R11 switches/links, R13 evidence receipts and relevant project/analysis settings. Updated timestamps alone do not count as changes. The comparison is a **logical record diff**, not a visual/physical change measurement or record of authenticated authorship. Differences between project titles or missing evidence receipts are explicitly warned about.
+
+Checkpoint recovery is **always a complete workspace replacement**, never a selective merge, and requires:
+
+1. No staged EVIE approval or unfinished R9 path draft.
+2. Successful source validation, R18 preflight and additional acknowledgment of any review findings.
+3. A free timeline slot to save a NEW, independent pre-recovery snapshot of all active source documents first.
+4. Explicit confirmation of changes and full-document replacement.
+5. Successful timeline save, then R17's existing guarded seven-key localStorage restoration with readback/rollback on failure; finally full editor reload to prevent mixed React state.
+
+A full timeline **blocks recovery** until the operator exports/deletes an older checkpoint. The archive uses new `openblue.project-timeline/1` JSON at `openblue/project-timeline-v1`, max four checkpoints, 1.5 MB per complete workspace and 3.5 MB per timeline. Individual `openblue.project-checkpoint/1` backup files can be downloaded and explicitly imported **to the timeline only**, without applying active data. Corrupt stored timelines remain untouched unless the operator elects to download original bytes and explicitly reset.
+
+This archive is shared across browser projects; matching title/ID alone does **not prove versions represent the same site**. Browser storage is limited and may be cleared; critical data needs external backups. No existing blueprint/EVIE or R7–R18 source schema is changed. See [R19 checkpoint & comparison contract](docs/OPENBLUE_R19.md).
