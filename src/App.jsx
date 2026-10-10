@@ -11,6 +11,13 @@ import FieldEvidencePanel from './FieldEvidencePanel.jsx';
 import FieldReadinessPanel from './FieldReadinessPanel.jsx';
 import FieldHandoffPanel from './FieldHandoffPanel.jsx';
 import WorkspaceHome,{WorkspaceNavigator} from './WorkspaceHome.jsx';
+import ProjectVaultPanel from './ProjectVaultPanel.jsx';
+import {
+  VAULT_KEY,MAX_SNAPSHOT_BYTES,emptyProjectVault,loadProjectVault,saveProjectVault,
+  putProjectSlot,deleteProjectSlot,createWorkspaceSnapshot,
+  exportWorkspaceSlot,parseWorkspaceBackup,restoreWorkspaceInStorage,
+  loadActivePreferences,saveActivePreferences,
+} from './projectVault.js';
 import HandoffShelf from './HandoffShelf.jsx';
 import {workspaceOverview,addSessionHandoff,removeSessionHandoff} from './workspaceModel.js';
 import {
@@ -107,6 +114,12 @@ function safeFilename(title, extension) {
 
 export default function App() {
   const start = useMemo(initialProject, []);
+  const initialPreferences=useMemo(()=>loadActivePreferences(),[]);
+  const initialVault=useMemo(()=>loadProjectVault(),[]);
+  const [projectVault,setProjectVault]=useState(initialVault.doc);
+  const [projectVaultError,setProjectVaultError]=useState(initialVault.error);
+  const vaultImportRef=useRef(null);
+  const switchingRef=useRef(false);
   const [history, setHistory] = useState({ past: [], present: start.project, future: [] });
   const [activeTool, setActiveTool] = useState('select');
   const [activeWorkspace,setActiveWorkspace]=useState('workspace');
@@ -116,8 +129,8 @@ export default function App() {
   const [fitRequest, setFitRequest] = useState(0);
   const [threeFitRequest, setThreeFitRequest] = useState(0);
   const [showRooms, setShowRooms] = useState(true);
-  const [analysisMode, setAnalysisMode] = useState('connected');
-  const [networkHubId,setNetworkHubId] = useState('');
+  const [analysisMode, setAnalysisMode] = useState(initialPreferences.analysisMode);
+  const [networkHubId,setNetworkHubId] = useState(initialPreferences.networkHubId);
   const [showNetworkGuides,setShowNetworkGuides] = useState(true);
   const [pathways,setPathways] = useState(()=>loadPathways().doc);
   const [rackPlan,setRackPlan] = useState(()=>loadRackPlan().doc);
@@ -173,6 +186,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      if(switchingRef.current)return;
       try {
         saveStoredProject(project);
         setSaveState('saved locally');
@@ -186,6 +200,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      if(switchingRef.current)return;
       try { saveRoomAnnotations(roomAnnotations); }
       catch(error) { setNotice('Room annotations not saved: ' + error.message + '. Export an annotations backup.'); }
     }, 250);
@@ -194,6 +209,7 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      if(switchingRef.current)return;
       try{saveEvidenceLedger(evidenceLedger)}
       catch(error){setNotice('Evidence ledger not saved: '+error.message+'. Export backup immediately.')}
     },280);
@@ -202,6 +218,7 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      if(switchingRef.current)return;
       try{saveTopology(logicalTopology)}catch(error){setNotice('Logical topology not saved: '+error.message+'. Export a backup.')}
     },260);
     return ()=>clearTimeout(timer);
@@ -209,6 +226,7 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      if(switchingRef.current)return;
       try{saveRackPlan(rackPlan)}
       catch(error){setNotice('Rack plan not saved: '+error.message+'. Export a backup.')}
     },260);
@@ -217,10 +235,19 @@ export default function App() {
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
+      if(switchingRef.current)return;
       try{savePathways(pathways)}catch(error){setNotice('Pathway proposals not saved: '+error.message+'. Export a backup.')}
     },260);
     return ()=>clearTimeout(timer);
   },[pathways]);
+  useEffect(()=>{
+    const timer=setTimeout(()=>{
+      if(switchingRef.current)return;
+      try{saveActivePreferences({analysisMode,networkHubId});}
+      catch(error){setNotice('Workspace preferences could not be saved: '+error.message);}
+    },275);
+    return ()=>clearTimeout(timer);
+  },[analysisMode,networkHubId]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -499,6 +526,116 @@ export default function App() {
       setNotice('Human review receipt appended. Acceptance is of the REPORT RECORD only, not certified network connectivity.');
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
+  };
+  const currentVaultDocuments=()=>createWorkspaceSnapshot({
+    project,roomAnnotations,pathways,rackPlan,logicalTopology,fieldEvidence:evidenceLedger,
+    preferences:{analysisMode,networkHubId},
+  });
+  const saveActiveVaultSlot=(name)=>{
+    try{
+      if(projectVaultError)throw Error('The vault is unreadable. Reset it explicitly before saving.');
+      const slotId=makeId('vault-slot');
+      const next=putProjectSlot(projectVault,{id:slotId,name,workspace:currentVaultDocuments()});
+      saveProjectVault(next);
+      setProjectVault(next);
+      setNotice('Complete workspace snapshot stored locally. Export JSON for a durable off-browser backup.');
+      return true;
+    }catch(error){setNotice('Snapshot not saved: '+error.message);return false;}
+  };
+  const updateVaultSlot=id=>{
+    const slot=projectVault.slots.find(s=>s.id===id);
+    if(!slot||projectVaultError)return;
+    if(!window.confirm(`Replace all six documents in saved snapshot "${slot.name}" with the current active project and field evidence? This cannot be undone without an exported backup.`))return;
+    try{
+      const next=putProjectSlot(projectVault,{id,name:slot.name,workspace:currentVaultDocuments()});
+      saveProjectVault(next);
+      setProjectVault(next);
+      setNotice('Explicit snapshot overwrite saved. Report claims remain manually entered, not authenticated.');
+    }catch(error){setNotice('Snapshot not updated: '+error.message);}
+  };
+  const openVaultSlot=id=>{
+    const slot=projectVault.slots.find(s=>s.id===id);
+    if(!slot||projectVaultError)return;
+    if(evieProposal){setNotice('Reject or approve the staged EVIE proposal before switching projects.');return;}
+    if(routeDraft){setNotice('Save or cancel the unfinished operator pathway sketch before switching projects.');return;}
+    if(projectVault.slots.length>=6){
+      setNotice('Six saved slots are full. Export or remove an old snapshot to leave room for a pre-switch safety backup.');
+      return;
+    }
+    let current;
+    try{current=currentVaultDocuments();}
+    catch(error){setNotice('Project switch blocked: current data needs review: '+error.message);return;}
+    if(JSON.stringify(current)===JSON.stringify(slot.workspace)){
+      setNotice('The active workspace already matches this saved snapshot. Nothing replaced.');
+      return;
+    }
+    if(!window.confirm(`Open "${slot.name}"? OpenBlue will FIRST save the current active design and all sidecars as a separate pre-switch snapshot, then replace six active documents and reload. Make an external JSON backup for critical projects.`))return;
+    try{
+      // Never modify active storage until the current workspace has been saved.
+      const safetyName=('Before switch · '+(project.metadata.title||'Active plan')).slice(0,100);
+      const next=putProjectSlot(projectVault,{
+        id:makeId('vault-safety'),name:safetyName,workspace:current,
+      });
+      saveProjectVault(next);
+      setProjectVault(next);
+      switchingRef.current=true;
+      try{
+        restoreWorkspaceInStorage(slot.workspace);
+      }catch(error){
+        switchingRef.current=false;
+        throw error;
+      }
+      // A hard reload re-initializes every existing v1/R7/R9/R10/R11/R13
+      // loader from one complete restored set and prevents sidecar crossover.
+      window.location.reload();
+    }catch(error){setNotice('Project switch stopped: '+error.message);}
+  };
+  const deleteVaultSlotEntry=id=>{
+    const slot=projectVault.slots.find(s=>s.id===id);
+    if(!slot||projectVaultError)return;
+    if(!window.confirm(`Delete saved snapshot "${slot.name}" from this browser? Its exported backups are unaffected; the active editor is not changed.`))return;
+    try{
+      const next=deleteProjectSlot(projectVault,id);
+      saveProjectVault(next);
+      setProjectVault(next);
+      setNotice('Saved snapshot deleted. Active design and field evidence unchanged.');
+    }catch(error){setNotice('Could not delete snapshot: '+error.message);}
+  };
+  const exportVaultSlot=id=>{
+    const slot=projectVault.slots.find(s=>s.id===id);
+    if(!slot)return;
+    if(!window.confirm('Download this complete saved workspace, including project geometry, technician names and reported field evidence? Protect the file appropriately.'))return;
+    try{
+      downloadText(safeFilename(slot.name,'openblue-workspace-backup.json'),
+        exportWorkspaceSlot(slot),'application/json');
+      setNotice('Portable complete workspace backup exported. No device state has been independently verified.');
+    }catch(error){setNotice('Backup export rejected: '+error.message);}
+  };
+  const importVaultBackup=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(projectVaultError)throw Error('Stored project vault is unreadable.');
+      if(file.size>MAX_SNAPSHOT_BYTES+5000)throw Error('Workspace backup exceeds the 1.5 MB bound.');
+      const incoming=parseWorkspaceBackup(await file.text());
+      if(!window.confirm(`Import saved workspace "${incoming.name}" (project "${incoming.workspace.project.metadata.title}") into this browser library ONLY? This will not activate or overwrite the current design.`))return;
+      const next=putProjectSlot(projectVault,{
+        id:makeId('vault-import'),name:incoming.name,
+        workspace:incoming.workspace,savedAt:new Date().toISOString(),
+      });
+      saveProjectVault(next);
+      setProjectVault(next);
+      setNotice('Full workspace backup imported to local library, not activated. Select Open to make it current.');
+    }catch(error){setNotice('Workspace backup rejected: '+error.message);}
+  };
+  const resetUnreadableVault=()=>{
+    if(!window.confirm('The project library cannot be parsed. Permanently reset its stored snapshots? Active drawing is NOT touched. Export backups first if possible.'))return;
+    try{
+      localStorage.removeItem(VAULT_KEY);
+      setProjectVault(emptyProjectVault());
+      setProjectVaultError(null);
+      setNotice('Unreadable local vault explicitly reset; active project was not changed.');
+    }catch(error){setNotice('Project vault reset failed: '+error.message);}
   };
   const navigateWorkspace=target=>{
     if(routeDraft && target!=='network'){
@@ -891,10 +1028,21 @@ export default function App() {
             )}
 
             </>}
-            {activeWorkspace==='workspace'&&<WorkspaceHome
-              summary={workspaceSummary} onNavigate={navigateWorkspace}
-              onExportJson={exportJson} onOpenImport={()=>importRef.current?.click()}
-            />}
+            {activeWorkspace==='workspace'&&<>
+              <WorkspaceHome
+                summary={workspaceSummary} onNavigate={navigateWorkspace}
+                onExportJson={exportJson} onOpenImport={()=>importRef.current?.click()}
+              />
+              <ProjectVaultPanel vault={projectVault} error={projectVaultError}
+                activeTitle={project.metadata.title}
+                onSave={saveActiveVaultSlot} onUpdate={updateVaultSlot}
+                onOpen={openVaultSlot} onDelete={deleteVaultSlotEntry}
+                onExport={exportVaultSlot} onImport={()=>vaultImportRef.current?.click()}
+                onReset={resetUnreadableVault}
+              />
+              <input ref={vaultImportRef} type="file" accept="application/json,.json" hidden
+                onChange={importVaultBackup} />
+            </>}
             {activeWorkspace==='design'&&<>
             <RoomAnalysisPanel
               analysis={labeledAnalysis} units={project.metadata.units}

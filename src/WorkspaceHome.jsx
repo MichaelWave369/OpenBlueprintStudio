@@ -1,6 +1,6 @@
 import {WORKSPACE_SECTIONS} from './workspaceModel.js';
 
-/** R16: operator navigation; summary is read-only and never implies certification. */
+/** R16/R17: operator navigation; summary is read-only and never implies certification. */
 export function WorkspaceNavigator({current,onChange}){
  return <nav className="workspace-nav" aria-label="OpenBlue workspaces">
    {WORKSPACE_SECTIONS.map(section=><button type="button" key={section.id}
@@ -27,13 +27,13 @@ export default function WorkspaceHome({summary,onNavigate,onExportJson,onOpenImp
  ];
  return <section className="workspace-home" aria-label="Current project overview">
    <div className="room-panel-heading">
-     <div><span className="eyebrow">R16 · ONE ACTIVE PROJECT</span><h3>Workspace Overview</h3></div>
+     <div><span className="eyebrow">R17 · ACTIVE PROJECT & LOCAL VAULT</span><h3>Workspace Overview</h3></div>
      <span className="room-state">LOCAL FIRST</span>
    </div>
    <div className="workspace-active-project">
      <span>ACTIVE DRAWING</span><strong>{summary.title}</strong>
      <small>{summary.walls} walls · {summary.symbols} symbols · {summary.units} units</small>
-     <p>This is one active browser-saved project. Other designs require explicit JSON import/export. Workspace navigation does not save or switch between multiple independent project slots.</p>
+     <p>The editor operates on one active locally saved project at a time. Use the Project Library below to save and open separate complete project snapshots explicitly, or export an off-browser backup.</p>
    </div>
    <div className="workspace-home-cards">
      {categories.map(card=><button type="button" key={card.title}
