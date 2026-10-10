@@ -13,7 +13,7 @@ const TITLE_LIMIT=23;
 const display=name=>name.length>TITLE_LIMIT?name.slice(0,TITLE_LIMIT-1)+'…':name;
 const shortStatus=s=>s.length>27?s.slice(0,26)+'…':s;
 
-export default function TopologyDiagramPanel({graph,onExport}){
+export default function TopologyDiagramPanel({graph,onExport,onEvidenceTarget}){
   const [focusId,setFocusId]=useState(null);
   const [filter,setFilter]=useState('all');
   const [expandedIssues,setExpandedIssues]=useState(false);
@@ -48,7 +48,10 @@ export default function TopologyDiagramPanel({graph,onExport}){
   },[graph,filter,focusId]);
   const visualEdges=graph.edges.filter(e=>viewed.positions.has(e.from)&&viewed.positions.has(e.to));
   const issues=expandedIssues?graph.issues:graph.issues.slice(0,8);
-  const focus=n=>setFocusId(current=>current===n.id?null:n.id);
+  const focus=n=>{
+    setFocusId(current=>current===n.id?null:n.id);
+    onEvidenceTarget?.(n.id);
+  };
   return <section className="topology-visualizer" aria-label="Offline proposed network topology visualizer">
     <div className="room-panel-heading">
       <div><span className="eyebrow">R12 · OFFLINE RECONCILIATION</span><h3>Network Topology Map</h3></div>
@@ -123,6 +126,8 @@ export default function TopologyDiagramPanel({graph,onExport}){
       <div className="rack-row-title">
         <strong>{LABELS[selected.type]} · {selected.title}</strong>
         <button type="button" className="small-button" onClick={()=>setFocusId(null)}>Clear selection</button>
+        <button type="button" className="small-button"
+          onClick={()=>onEvidenceTarget?.(selected.id)}>Record field evidence for this object</button>
       </div>
       <span>{selected.description}</span>
       <span>Status: {selected.state}. This is a planning state, not an observed device status.</span>

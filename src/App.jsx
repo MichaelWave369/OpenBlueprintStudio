@@ -7,6 +7,12 @@ import PathwayDesignPanel from './PathwayDesignPanel.jsx';
 import RackPlanningPanel from './RackPlanningPanel.jsx';
 import LogicalTopologyPanel from './LogicalTopologyPanel.jsx';
 import TopologyDiagramPanel from './TopologyDiagramPanel.jsx';
+import FieldEvidencePanel from './FieldEvidencePanel.jsx';
+import {
+  emptyEvidenceLedger,loadEvidenceLedger,saveEvidenceLedger,
+  appendEvidenceReport,appendEvidenceReview,reviewEvidenceLedger,
+  parseEvidenceLedger,serializeEvidenceLedger,targetFingerprint,
+} from './fieldEvidence.js';
 import {buildTopologyDiagram,topologyDiagramSnapshot} from './topologyDiagram.js';
 import {
   emptyTopology,loadTopology,saveTopology,addSwitch,deleteSwitch,setSwitchPortType,
@@ -104,6 +110,9 @@ export default function App() {
   const [pathways,setPathways] = useState(()=>loadPathways().doc);
   const [rackPlan,setRackPlan] = useState(()=>loadRackPlan().doc);
   const [logicalTopology,setLogicalTopology] = useState(()=>loadTopology().doc);
+  const [evidenceLedger,setEvidenceLedger]=useState(()=>loadEvidenceLedger().doc);
+  const [evidenceTargetId,setEvidenceTargetId]=useState('');
+  const evidenceImportRef=useRef(null);
   const topologyImportRef=useRef(null);
   const rackImportRef=useRef(null);
   const [pathwayTargetId,setPathwayTargetId] = useState('');
@@ -168,6 +177,14 @@ export default function App() {
     }, 250);
     return () => clearTimeout(timer);
   }, [roomAnnotations]);
+
+  useEffect(()=>{
+    const timer=setTimeout(()=>{
+      try{saveEvidenceLedger(evidenceLedger)}
+      catch(error){setNotice('Evidence ledger not saved: '+error.message+'. Export backup immediately.')}
+    },280);
+    return ()=>clearTimeout(timer);
+  },[evidenceLedger]);
 
   useEffect(()=>{
     const timer=setTimeout(()=>{
@@ -242,6 +259,8 @@ export default function App() {
     [logicalTopology,rackPlan,rackReview]);
   const diagramReview=useMemo(()=>buildTopologyDiagram(rackPlan,rackReview,topologyReview,networkReport),
     [rackPlan,rackReview,topologyReview,networkReport]);
+  const evidenceReview=useMemo(()=>reviewEvidenceLedger(evidenceLedger,diagramReview),
+    [evidenceLedger,diagramReview]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -321,6 +340,8 @@ export default function App() {
     }catch(error){setNotice('Pathway import rejected: '+error.message);}
   };
   const replaceRoomNotesForNewPlan = () => {
+    setEvidenceLedger(emptyEvidenceLedger());
+    setEvidenceTargetId('');
     setLogicalTopology(emptyTopology());
     setRackPlan(emptyRackPlan());
     setPathways(emptyPathways());
@@ -440,6 +461,44 @@ export default function App() {
       setLogicalTopology(incoming);
       setNotice('Unverified logical topology imported; inspect proposed interface assumptions and warnings.');
     }catch(error){setNotice('Topology import rejected: '+error.message);}
+  };
+  const reportFieldEvidence=payload=>{
+    try{
+      const next=appendEvidenceReport(evidenceLedger,diagramReview,payload);
+      setEvidenceLedger(next);
+      setNotice('Operator-reported evidence appended. No claim was independently verified.');
+      return true;
+    }catch(error){setNotice('Evidence receipt rejected: '+error.message);return false;}
+  };
+  const reviewFieldEvidence=payload=>{
+    try{
+      const next=appendEvidenceReview(evidenceLedger,diagramReview,payload);
+      setEvidenceLedger(next);
+      setNotice('Human review receipt appended. Acceptance is of the REPORT RECORD only, not certified network connectivity.');
+      return true;
+    }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
+  };
+  const exportEvidence=()=>{
+    try{
+      downloadText(safeFilename(project.metadata.title,'field-evidence.json'),
+        serializeEvidenceLedger(evidenceLedger),'application/json');
+      setNotice('Full append-only local evidence history exported. Checksums are not cryptographic signatures.');
+    }catch(error){setNotice('Evidence export failed: '+error.message);}
+  };
+  const importEvidence=async event=>{
+    const file=event.target.files?.[0];event.target.value='';
+    if(!file)return;
+    try{
+      if(file.size>500000)throw Error('Evidence file exceeds 500 KB.');
+      const incoming=parseEvidenceLedger(await file.text());
+      const reports=incoming.events.filter(e=>e.kind==='report');
+      const current=reports.filter(r=>targetFingerprint(diagramReview,r.targetId)===r.targetFingerprint);
+      if(reports.length && !current.length)
+        throw Error('No receipt target fingerprints match this design; import rejected rather than rebinding history.');
+      if(!window.confirm(`Import ${incoming.events.length} ledger event(s) (${current.length}/${reports.length} reports match current targets)? This REPLACES the local ledger, never changes design records or network state.`))return;
+      setEvidenceLedger(incoming);
+      setNotice(`Imported ${incoming.events.length} append-only events. Stale or missing targets stay flagged; reviews are NOT certification.`);
+    }catch(error){setNotice('Evidence import rejected: '+error.message);}
   };
   const exportDiagramReview=()=>{
     try{
@@ -782,7 +841,16 @@ export default function App() {
             />
             <input ref={topologyImportRef} type="file" hidden accept="application/json,.json" onChange={importLogicalTopology} />
 
-            <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview} />
+            <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview}
+              onEvidenceTarget={setEvidenceTargetId} />
+            <FieldEvidencePanel
+              graph={diagramReview} ledger={evidenceLedger} review={evidenceReview}
+              targetId={evidenceTargetId} onTargetChange={setEvidenceTargetId}
+              onReport={reportFieldEvidence} onReview={reviewFieldEvidence}
+              onExport={exportEvidence} onImport={()=>evidenceImportRef.current?.click()}
+            />
+            <input ref={evidenceImportRef} type="file" hidden accept="application/json,.json"
+              onChange={importEvidence} />
 
             <div className="project-settings">
               <label>Units<select aria-label="Convert project units" value={project.metadata.units} onChange={(event) => changeUnits(event.target.value)}><option value="ft">Feet</option><option value="m">Meters</option></select></label>

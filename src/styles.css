@@ -327,3 +327,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .topology-finding strong{color:#c1ddec;font-size:10px}
 .topology-finding span{color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
 .topology-finding button{justify-self:start}
+
+/* R13 field-report ledger, intentionally separated from design and test execution. */
+.field-evidence-panel{display:grid;gap:11px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.field-evidence-panel .room-panel-heading h3{margin:3px 0 0;font-size:12px}
+.field-evidence-entry{display:grid;gap:9px;border:1px solid var(--line);background:rgba(87,215,255,.03);padding:11px}
+.field-evidence-entry>strong{font-size:11px;color:#dff8ff}
+.field-evidence-entry label{display:grid;gap:5px;font-size:10px;color:#99bfd2;min-width:0}
+.field-evidence-entry input,.field-evidence-entry select,.field-evidence-entry textarea{
+ width:100%;min-width:0;background:#081525;color:#eaf9ff;border:1px solid var(--line);
+ padding:8px;font:11px system-ui,sans-serif
+}
+.field-evidence-entry textarea{resize:vertical;min-height:52px;line-height:1.5}
+.field-evidence-entry>button{justify-self:start}
+.field-evidence-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.field-evidence-subnote{font-size:10px;color:var(--muted);margin:0;line-height:1.5}
+.field-evidence-history{display:grid;gap:9px}
+.field-evidence-history>.rack-row-title>strong{font-size:11px}
+.field-evidence-history>.rack-row-title>span{color:var(--muted);font:10px Consolas,monospace}
+.field-evidence-receipt{border:1px solid var(--line);padding:9px;display:grid;gap:6px;
+ font-size:10px;color:#b8d2e0;overflow-wrap:anywhere}
+.field-evidence-receipt.reviewed-claim{border-left:3px solid #a7f3d0}
+.field-evidence-receipt.rejected-claim,.field-evidence-receipt.stale,
+.field-evidence-receipt.orphaned{border-left:3px solid var(--amber)}
+.field-evidence-receipt.awaiting-review{border-left:3px solid #57d7ff}
+.field-evidence-receipt .rack-row-title strong{font:700 10px Consolas,monospace;color:#e9f9ff}
+.field-evidence-receipt .rack-row-title span{font:10px Consolas,monospace;color:var(--amber)}
+.field-evidence-receipt p{font-size:10px;line-height:1.5;color:var(--muted);margin:0}
+.field-evidence-receipt button{justify-self:start}
+.field-evidence-panel>p.room-warning{line-height:1.65}
+@media(max-width:400px){.field-evidence-two{grid-template-columns:1fr}}
