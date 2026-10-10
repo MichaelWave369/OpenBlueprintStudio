@@ -25,7 +25,7 @@ export default function FieldEvidencePanel({
     const ok=onReport({targetId:selected.id,reporter,method,result,evidenceRef:reference,notes});
     if(ok){setReference('');setNotes('');}
   };
-  return <section className="field-evidence-panel" aria-label="Field evidence and operator review ledger">
+  return <section id="field-evidence-ledger" className="field-evidence-panel" aria-label="Field evidence and operator review ledger">
     <div className="room-panel-heading">
       <div><span className="eyebrow">R13 · EVIDENCE ABOVE ASSUMPTION</span><h3>Field Evidence Ledger</h3></div>
       <span className="room-state">{ledger.events.length} receipts</span>

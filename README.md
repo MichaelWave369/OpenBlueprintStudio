@@ -6,6 +6,7 @@
 
 - SVG drawing surface for walls, doors, windows, outlets and network drops.
 - Live, lazy-loaded Three.js concept preview.
+- **R14 field inspection checklist and review gate:** derive mandatory rack/switch/panel/drop/link/port-allocation checks from the R12 graph and R13 receipt ledger. Human-reviewed reported-PASS coverage, fail-closed design/scope blockers, latest-report precedence, and review-only JSON snapshot. A completion candidate is never installer authorization or independent physical verification.
 - **R13 field evidence ledger:** record referenced, human-reported field observations on specific R12 nodes or edges; append human review receipts by a second person; automatically mark evidence stale when design fingerprints change. Separate local append-only receipt chain, schema-checked import/export; no automatic verification, signatures or real network tests.
 - **R12 offline topology visualizer:** deterministic read-only SVG diagram of existing R8/R10/R11 proposals with clickable rack, switch, panel and drop nodes; separate rack membership, proposed logical links and panel/drop allocations. Local consistency ledger flags stale equipment, missing references, untraced pathways and unassigned room drops. No ping, SNMP, device execution or live diagnostics.
 - **R11 governed logical topology:** create speculative switches in R10 rack slots, assign planned interface types per logical port, and propose unique switch-to-panel or switch-to-switch connections. Detect stale rack, U-slot conflicts, missing patch panels, incompatible interfaces and unallocated panel ports. Stored under an independent local sidecar; no live device discovery or operational link claims.
@@ -132,3 +133,13 @@ Every submission appends a receipt with sequence number, UTC timestamp, design-t
 The local browser sidecar is `openblue.field-evidence/1` at `openblue/field-evidence-v1`; exports capture the full append-only history, up to 400 events and 500 KB. Imports validate the event chain and require operator confirmation; no targets are silently remapped. The checksum is **noncryptographic** and only catches accidental corruption, NOT deliberate manipulation or proof of authorship, timestamps or physical installation. Back up before replacing/importing a blueprint or approving EVIE: those plan replacement operations reset the active evidence ledger.
 
 All existing CAD, EVIE, room, pathway, rack and logical topology schemas are unchanged. [R13 evidence governance contract](docs/OPENBLUE_R13.md).
+
+## R14: Field Inspection Checklist & Documentation Gate
+
+The **Field Inspection Checklist** is a read-only, deterministic assessment of R12's proposed racks, switches, patch panels, network drops, logical links and panel-to-drop allocations together with R13's operator-entered reports and independent record reviews. Every required item has an explicit accepted report method: visual inspection for equipment, a reported link test for logical connections, and a reported cable test for panel/drop allocations. These methods are **reported by humans**, never run by OpenBlue.
+
+The gate stays `HOLD_FOR_DOCUMENTATION` if any required component category is absent, a static R12 review issue exists, a planned route has not been drawn, a reported test fails, a report is inconclusive, a reviewer rejected it, its target has changed, or the newest report still awaits independent review. An older accepted PASS cannot override newer evidence.
+
+Only when all six component categories exist, there are **zero static planning blockers**, and every item has a current, separately reviewed reported-PASS claim does OpenBlue show `DOCUMENTATION_REVIEW_CANDIDATE`. This means **ready to be inspected by an authorized human**, *not* construction authorization, independent device/cable verification, permission to drill, network connectivity or regulatory compliance.
+
+R14 uses no new writable sidecar and changes no existing CAD/EVIE/R7-R13 schemas. Export `openblue.field-readiness-review/1` JSON for a read-only checklist receipt, including evidence receipt IDs and unresolved actions. See [R14 readiness criteria](docs/OPENBLUE_R14.md).
