@@ -65,7 +65,10 @@ describe('R19 bounded, explicit source-complete recovery checkpoints',()=>{
   const diff=compareWorkspaceVersions(a,b);
   expect(diff.sections.find(s=>s.name==='Walls')).toMatchObject({added:1,removed:0,changed:1});
   expect(diff.sections.find(s=>s.name==='Symbols')).toMatchObject({removed:1});
-  expect(diff.totalChanges).toBe(3);
+  // Removing the selected network symbol also invalidates the saved hub
+  // preference; R17 clears that stale reference during workspace validation.
+  expect(diff.sections.find(s=>s.name==='Project settings').changed).toBe(1);
+  expect(diff.totalChanges).toBe(4);
   expect(JSON.stringify(b)).toBe(before);
   expect(JSON.parse(exportCheckpointComparison(diff)).schemaVersion).toBe('openblue.project-diff/1');
  });
