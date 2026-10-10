@@ -811,7 +811,10 @@ export default function App() {
             routeDraft={routeDraft}
             onRouteWaypoint={appendWaypoint}
             onCancelRouteDraft={cancelRouteDraft}
-            onSelect={(id)=>{setSelectedId(id);if(id)setSelectedRoomKey(null);}}
+            onSelect={(id)=>{
+              setSelectedId(id);
+              if(id){setSelectedRoomKey(null);setActiveWorkspace('design');}
+            }}
             onMoveWallEndpoint={editWallEndpoint}
             onAddWall={(wall) => {
               commit((current) => addWall(current, wall), 'Wall added. Click another point to continue; Escape ends the chain.');
@@ -841,6 +844,7 @@ export default function App() {
 
           <div className="inspector">
             <WorkspaceNavigator current={activeWorkspace} onChange={navigateWorkspace} />
+            {activeWorkspace==='design'&&<>
             <div className="inspector-heading">
               <div>
                 <span className="eyebrow">INSPECTOR</span>
@@ -886,6 +890,7 @@ export default function App() {
               </div>
             )}
 
+            </>}
             {activeWorkspace==='workspace'&&<WorkspaceHome
               summary={workspaceSummary} onNavigate={navigateWorkspace}
               onExportJson={exportJson} onOpenImport={()=>importRef.current?.click()}
@@ -952,7 +957,7 @@ export default function App() {
             <input ref={topologyImportRef} type="file" hidden accept="application/json,.json" onChange={importLogicalTopology} />
 
             <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview}
-              onEvidenceTarget={setEvidenceTargetId} />
+              onEvidenceTarget={openReadinessEvidence} />
             </>}
             {activeWorkspace==='field'&&<>
             <FieldReadinessPanel
