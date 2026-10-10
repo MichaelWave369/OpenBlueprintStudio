@@ -8,6 +8,8 @@ import RackPlanningPanel from './RackPlanningPanel.jsx';
 import LogicalTopologyPanel from './LogicalTopologyPanel.jsx';
 import TopologyDiagramPanel from './TopologyDiagramPanel.jsx';
 import FieldEvidencePanel from './FieldEvidencePanel.jsx';
+import FieldReadinessPanel from './FieldReadinessPanel.jsx';
+import {assessFieldReadiness,fieldReadinessSnapshot} from './fieldReadiness.js';
 import {
   emptyEvidenceLedger,loadEvidenceLedger,saveEvidenceLedger,
   appendEvidenceReport,appendEvidenceReview,reviewEvidenceLedger,
@@ -261,6 +263,8 @@ export default function App() {
     [rackPlan,rackReview,topologyReview,networkReport]);
   const evidenceReview=useMemo(()=>reviewEvidenceLedger(evidenceLedger,diagramReview),
     [evidenceLedger,diagramReview]);
+  const readinessReview=useMemo(()=>assessFieldReadiness(diagramReview,evidenceReview),
+    [diagramReview,evidenceReview]);
   const traceHub=networkReport.hubId;
   useEffect(() => {
     setSelectedRoomKey(current => current && !validRoomKeys.has(current) ? null : current);
@@ -477,6 +481,17 @@ export default function App() {
       setNotice('Human review receipt appended. Acceptance is of the REPORT RECORD only, not certified network connectivity.');
       return true;
     }catch(error){setNotice('Review receipt rejected: '+error.message);return false;}
+  };
+  const exportFieldReadiness=()=>{
+    try{
+      downloadText(safeFilename(project.metadata.title,'field-readiness-review.json'),
+        fieldReadinessSnapshot(readinessReview),'application/json');
+      setNotice('Review-only readiness snapshot exported; this does NOT approve construction, installation or network connectivity.');
+    }catch(error){setNotice('Readiness export failed: '+error.message);}
+  };
+  const openReadinessEvidence=id=>{
+    setEvidenceTargetId(id);
+    document.getElementById('field-evidence-ledger')?.scrollIntoView({behavior:'smooth',block:'start'});
   };
   const exportEvidence=()=>{
     try{
@@ -843,6 +858,10 @@ export default function App() {
 
             <TopologyDiagramPanel graph={diagramReview} onExport={exportDiagramReview}
               onEvidenceTarget={setEvidenceTargetId} />
+            <FieldReadinessPanel
+              report={readinessReview} onExport={exportFieldReadiness}
+              onInspectTarget={openReadinessEvidence}
+            />
             <FieldEvidencePanel
               graph={diagramReview} ledger={evidenceLedger} review={evidenceReview}
               targetId={evidenceTargetId} onTargetChange={setEvidenceTargetId}
