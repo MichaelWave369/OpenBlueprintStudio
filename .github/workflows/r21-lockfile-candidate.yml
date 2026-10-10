@@ -12,15 +12,18 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: '22'
-      - name: Install known-good lockfile first
-        run: npm ci
-      - name: Patch vulnerable tools without forced major upgrades
+      - name: Use npm 11 to bypass npm 10 Arborist null edgesOut defect
         run: |
+          npm install -g npm@11.6.2
+          npm --version
+      - name: Generate patched lockfile
+        run: |
+          npm ci
           npm install --save-dev --save-exact vitest@4.1.11
           npm audit fix
           npm audit --audit-level=moderate
           npm test
           npm run build
-      - name: Emit generated lockfile for checked-in update
+      - name: Emit reviewed manifest and lockfile
         run: |
           node -e "const fs=require('fs');console.log('R21_LOCK_B64_BEGIN');console.log(fs.readFileSync('package-lock.json').toString('base64'));console.log('R21_LOCK_B64_END');console.log('R21_MANIFEST_B64_BEGIN');console.log(fs.readFileSync('package.json').toString('base64'));console.log('R21_MANIFEST_B64_END');"
