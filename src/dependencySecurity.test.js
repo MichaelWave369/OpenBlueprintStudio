@@ -15,7 +15,7 @@ function minVersion(version,minimum){
 describe('R21 dependency security policy and lockfile regression guards',()=>{
  it('locks the manifest and actual Vitest mocker to fixed v4.1.11 or newer',()=>{
   const vitest=manifest.devDependencies.vitest;
-  expect(vitest).toMatch(/^4\\.1\\.\\d+$/);
+  expect(vitest).toMatch(/^4\.1\.\d+$/);
   expect(minVersion(vitest,'4.1.11')).toBe(true);
   expect(lock.packages[''].devDependencies.vitest).toBe(vitest);
   expect(lock.packages['node_modules/vitest'].version).toBe(vitest);
@@ -24,7 +24,7 @@ describe('R21 dependency security policy and lockfile regression guards',()=>{
  it('includes patched nanoid and source-map-js in the actual lockfile',()=>{
   const nanoid=lock.packages['node_modules/nanoid'].version;
   const sourceMap=lock.packages['node_modules/source-map-js'].version;
-  expect(nanoid).toMatch(/^3\\./);
+  expect(nanoid).toMatch(/^3\./);
   expect(minVersion(nanoid,'3.3.18')).toBe(true);
   expect(minVersion(sourceMap,'1.2.2')).toBe(true);
  });
