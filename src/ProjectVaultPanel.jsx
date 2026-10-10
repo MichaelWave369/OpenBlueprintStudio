@@ -6,7 +6,7 @@ export default function ProjectVaultPanel({
 }){
  const [name,setName]=useState('');
  const [details,setDetails]=useState(false);
- return <section className="project-vault-panel" aria-label="Local complete project snapshots">
+ return <section id="openblue-project-library" className="project-vault-panel" aria-label="Local complete project snapshots">
    <div className="room-panel-heading">
      <div><span className="eyebrow">R17 · LOCAL NAMED WORKSPACES</span><h3>Project Library</h3></div>
      <span className="room-state">{vault.slots.length}/6 snapshots</span>

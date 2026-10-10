@@ -15,6 +15,8 @@ import ProjectVaultPanel from './ProjectVaultPanel.jsx';
 import WorkspaceAuditPanel from './WorkspaceAuditPanel.jsx';
 import ProjectTimelinePanel from './ProjectTimelinePanel.jsx';
 import RecoveryDrillPanel from './RecoveryDrillPanel.jsx';
+import OperatorSelfTestPanel from './OperatorSelfTestPanel.jsx';
+import {runOperatorSelfTest,serializeOperatorSelfTest} from './operatorSelfTest.js';
 import {drillWorkspaceRecovery,serializeRecoveryDrill} from './recoveryDrill.js';
 import {
   TIMELINE_STORAGE_KEY,MAX_CHECKPOINTS,MAX_CHECKPOINT_BYTES,emptyTimeline,loadTimeline,saveTimeline,
@@ -133,6 +135,8 @@ export default function App() {
   const [timelineCompareFrom,setTimelineCompareFrom]=useState('active');
   const [recoveryDrillSource,setRecoveryDrillSource]=useState('active');
   const [recoveryDrillReport,setRecoveryDrillReport]=useState(null);
+  const [operatorSelfTestReport,setOperatorSelfTestReport]=useState(null);
+  const [operatorSelfTestRunning,setOperatorSelfTestRunning]=useState(false);
   const timelineImportRef=useRef(null);
   const [projectVault,setProjectVault]=useState(initialVault.doc);
   const [projectVaultError,setProjectVaultError]=useState(initialVault.error);
@@ -552,6 +556,51 @@ export default function App() {
     preferences:{analysisMode,networkHubId},
   });
   const currentVaultDocuments=()=>createWorkspaceSnapshot(currentVaultRaw());
+  const executeOperatorSelfTest=async()=>{
+    if(operatorSelfTestRunning)return;
+    setOperatorSelfTestRunning(true);
+    try{
+      let storage=null,storageEstimate=null;
+      try{storage=window.localStorage;}catch{storage=null;}
+      try{
+        if(navigator.storage?.estimate){
+          const estimate=await navigator.storage.estimate();
+          storageEstimate={usage:estimate.usage,quota:estimate.quota};
+        }
+      }catch{storageEstimate=null;}
+      const report=runOperatorSelfTest({
+        workspace:currentVaultRaw(),
+        storage,
+        capabilities:{
+          fileApi:typeof window.File==='function'&&typeof window.Blob==='function',
+          webCrypto:Boolean(window.isSecureContext&&window.crypto?.subtle),
+          webgl2:graphicsStatus.available===true,
+          storageEstimate,
+        },
+      });
+      setOperatorSelfTestReport(report);
+      setNotice(report.status==='LOCAL_CHECKS_PASSED'?
+        'R22 local operator self-test passed. No changes were made to your files or saved projects.':
+        'R22 operator self-test found items to review. Check the Overview report and export off-browser backups.');
+    }catch{
+      setNotice('Operator self-test could not finish. No project records were changed by the diagnostic.');
+    }finally{setOperatorSelfTestRunning(false);}
+  };
+  const exportOperatorSelfTest=()=>{
+    if(!operatorSelfTestReport)return;
+    try{
+      downloadText('openblue-operator-self-test.json',
+        serializeOperatorSelfTest(operatorSelfTestReport),'application/json');
+      setNotice('Privacy-safe local health-check report downloaded; no drawings or evidence receipts included.');
+    }catch{setNotice('Health-check report could not be exported.');}
+  };
+  const jumpToOperatorSection=name=>{
+    const ids={vault:'openblue-project-library',timeline:'openblue-project-timeline',
+      audit:'openblue-workspace-audit'};
+    const id=ids[name];if(id)document.getElementById(id)?.scrollIntoView({
+      behavior:'smooth',block:'start',
+    });
+  };
   const runRecoveryDrill=()=>{
     try{
       let snapshot,label,source='active';
@@ -1251,6 +1300,11 @@ export default function App() {
               <WorkspaceHome
                 summary={workspaceSummary} onNavigate={navigateWorkspace}
                 onExportJson={exportJson} onOpenImport={()=>importRef.current?.click()}
+              />
+              <OperatorSelfTestPanel
+                report={operatorSelfTestReport} running={operatorSelfTestRunning}
+                onRun={executeOperatorSelfTest} onExport={exportOperatorSelfTest}
+                onNavigate={jumpToOperatorSection}
               />
               <ProjectVaultPanel vault={projectVault} error={projectVaultError}
                 activeTitle={project.metadata.title}
